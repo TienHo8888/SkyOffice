@@ -4,6 +4,7 @@ import MyPlayer from './MyPlayer'
 import { sittingShiftData } from './Player'
 import WebRTC from '../web/WebRTC'
 import { Event, phaserEvents } from '../events/EventCenter'
+import { CharacterConfig } from '../../../types/Avatar'
 
 export default class OtherPlayer extends Player {
   private targetPosition: [number, number]
@@ -26,6 +27,7 @@ export default class OtherPlayer extends Player {
     this.targetPosition = [x, y]
 
     this.playerName.setText(name)
+    this.setNameplate('nameplate-basic')
     this.playContainerBody = this.playerContainer.body as Phaser.Physics.Arcade.Body
   }
 
@@ -51,6 +53,7 @@ export default class OtherPlayer extends Player {
       case 'name':
         if (typeof value === 'string') {
           this.playerName.setText(value)
+          this.refreshLabelLayout()
         }
         break
 
@@ -68,7 +71,18 @@ export default class OtherPlayer extends Player {
 
       case 'anim':
         if (typeof value === 'string') {
-          this.anims.play(value, true)
+          this.playAnimation(value, true)
+        }
+        break
+
+      case 'characterConfigJson':
+        if (typeof value === 'string') {
+          try {
+            const config = JSON.parse(value) as CharacterConfig
+            this.setCharacterConfig(config)
+          } catch {
+            this.setCharacterConfig(undefined)
+          }
         }
         break
 
@@ -83,12 +97,18 @@ export default class OtherPlayer extends Player {
           this.videoConnected = value
         }
         break
+
+      case 'nameplateId':
+        if (typeof value === 'string') this.setNameplate(value)
+        break
+
+      case 'titleId':
+        if (typeof value === 'string') this.setTitle(value)
+        break
     }
   }
 
   destroy(fromScene?: boolean) {
-    this.playerContainer.destroy()
-
     super.destroy(fromScene)
   }
 

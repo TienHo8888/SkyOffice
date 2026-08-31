@@ -14,7 +14,9 @@ export const chatSlice = createSlice({
   initialState: {
     chatMessages: new Array<{ messageType: MessageType; chatMessage: IChatMessage }>(),
     focused: false,
-    showChat: true,
+    // Keep the world and first-session guide readable on entry. Enter opens
+    // and focuses chat; the floating chat button remains available.
+    showChat: false,
   },
   reducers: {
     pushChatMessage: (state, action: PayloadAction<IChatMessage>) => {

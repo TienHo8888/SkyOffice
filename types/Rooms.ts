@@ -2,6 +2,8 @@ export enum RoomType {
   LOBBY = 'lobby',
   PUBLIC = 'skyoffice',
   CUSTOM = 'custom',
+  FISHING = 'fishing',
+  HOME = 'home',
 }
 
 export interface IRoomData {

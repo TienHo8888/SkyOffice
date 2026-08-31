@@ -1,0 +1,14 @@
+{
+  "source": "pixel-social-world",
+  "sourceCommit": "f9f0f18764ab3f9c5bdf4e5090cd6dd9fa952a0f",
+  "reference": "configs/fishing.json",
+  "defaultSpotId": "town_pier",
+  "dailyFullRewardCount": 10,
+  "biteTiming": { "castDelaySeconds": 0.35, "biteDelaySeconds": 0.55, "reelDelaySeconds": 0.35 },
+  "rarities": ["common", "uncommon", "rare"],
+  "fish": [
+    { "id": "pond_minnow", "rarity": "common", "weight": 60, "sellValue": 3 },
+    { "id": "leaf_carp", "rarity": "uncommon", "weight": 30, "sellValue": 8 },
+    { "id": "moon_koi", "rarity": "rare", "weight": 10, "sellValue": 25 }
+  ]
+}

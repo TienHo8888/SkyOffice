@@ -1,0 +1,3795 @@
+/*
+ * Readability pass
+ *
+ * The game world is rendered by Phaser outside #root.  Keep this layer scoped
+ * to the React UI so typography can be made comfortable without changing the
+ * pixel-art canvas, world scale, or gameplay coordinates.
+ */
+
+:root {
+  --ui-body-size: 14px;
+  --ui-copy-size: 13px;
+  --ui-meta-size: 11px;
+  --ui-label-size: 10px;
+  --ui-button-size: 12px;
+  --ui-line-height: 1.45;
+  --ui-muted-readable: #a8b8b0;
+  --ui-muted-strong: #bdc9c1;
+}
+
+#root {
+  font-size: 16px;
+}
+
+#root p {
+  font-size: var(--ui-copy-size);
+  line-height: 1.55;
+}
+
+#root small,
+#root time {
+  font-size: var(--ui-meta-size);
+  line-height: 1.35;
+}
+
+#root label {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#root input,
+#root select,
+#root textarea {
+  font-size: var(--ui-body-size);
+  line-height: 1.35;
+}
+
+#root button {
+  font-size: var(--ui-button-size);
+  line-height: 1.25;
+}
+
+/* Keep icon-only controls compact while allowing their labels to grow. */
+#root button svg,
+#root button img {
+  flex: 0 0 auto;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Work District                                                             */
+/* -------------------------------------------------------------------------- */
+
+#root .work-closed-dock strong {
+  font-size: 12px;
+}
+
+/* Reserve the right edge for the helper-button stack. The work dock is wide,
+ * so keeping it flush to the edge makes it cover the last helper control. */
+#root .work-closed-dock {
+  right: 64px;
+}
+
+/* Keep the floating action rail compact. The original styled container uses
+ * top/bottom anchors on narrow screens, which makes its bounding box span most
+ * of the viewport even though the buttons only occupy a small area. A compact
+ * box gives the overlap observer real geometry to measure. */
+#root .helper-button-backdrop {
+  right: max(10px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  top: auto;
+  height: auto;
+}
+
+#root .work-closed-dock small {
+  font-size: 11px;
+}
+
+#root .work-brand strong {
+  font-size: 14px;
+}
+
+#root .work-brand small {
+  font-size: 10px;
+}
+
+#root .work-location {
+  font-size: 12px;
+}
+
+#root .work-location small {
+  font-size: 11px;
+}
+
+#root .work-coin {
+  font-size: 14px;
+}
+
+#root .work-close {
+  width: 36px;
+  height: 36px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+#root .work-sidebar > button {
+  min-height: 42px;
+  font-size: 14px;
+}
+
+#root .work-sidebar-bottom small {
+  font-size: 10px;
+}
+
+#root .work-sidebar-bottom p {
+  font-size: 12px;
+}
+
+#root .work-sidebar-bottom button {
+  font-size: 11px;
+}
+
+#root .work-kicker {
+  font-size: 11px;
+  letter-spacing: .16em;
+}
+
+#root .work-page-title h2 {
+  font-size: clamp(24px, 2.2vw, 32px);
+  line-height: 1.12;
+}
+
+#root .work-page-title p {
+  max-width: 760px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+#root .work-cap-pill {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+#root .work-onboarding-banner strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+#root .work-onboarding-banner p {
+  font-size: 13px;
+}
+
+#root .work-stat-grid small {
+  font-size: 10px;
+}
+
+#root .work-stat-grid strong {
+  font-size: 18px;
+}
+
+#root .work-stat-grid em {
+  font-size: 11px;
+}
+
+#root .work-section-head h3 {
+  font-size: 20px;
+}
+
+#root .work-section-head > small {
+  font-size: 11px;
+}
+
+#root .work-job-title strong {
+  font-size: 15px;
+}
+
+#root .work-job-title span,
+#root .work-job-copy > small {
+  font-size: 11px;
+}
+
+#root .work-job-copy p {
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: normal;
+}
+
+#root .work-job-reward {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+#root .work-primary,
+#root .work-quiet,
+#root .work-danger {
+  min-height: 38px;
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+#root .work-career-hero h3 {
+  font-size: 25px;
+}
+
+#root .work-career-hero h3 small {
+  font-size: 12px;
+}
+
+#root .work-career-hero p {
+  font-size: 13px;
+}
+
+#root .work-career-hero-stat strong {
+  font-size: 25px;
+}
+
+#root .work-career-hero-stat > small,
+#root .work-career-hero-stat > span {
+  font-size: 11px;
+}
+
+#root .work-career-card {
+  display: flex;
+  flex-direction: column;
+}
+
+#root .work-career-card-head span,
+#root .work-career-card-head b {
+  font-size: 10px;
+}
+
+#root .work-career-card h3 {
+  font-size: 20px;
+}
+
+#root .work-career-card p {
+  min-height: 0;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#root .career-fit {
+  min-height: 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#root .career-fit b {
+  font-size: 10px;
+}
+
+#root .work-career-card > small {
+  font-size: 11px;
+}
+
+#root .work-career-card .work-progress {
+  margin-top: auto;
+}
+
+#root .work-paycheck-card > p {
+  font-size: 13px;
+}
+
+#root .work-paycheck-detail small {
+  font-size: 10px;
+}
+
+#root .work-paycheck-detail b {
+  font-size: 12px;
+}
+
+#root .work-salary-card > small {
+  font-size: 10px;
+}
+
+#root .work-salary-card > b,
+#root .work-salary-card > p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#root .work-status-pill {
+  font-size: 11px;
+}
+
+#root .work-salary-receipt > strong {
+  font-size: 12px;
+}
+
+#root .work-salary-receipt > div {
+  font-size: 12px;
+}
+
+#root .work-salary-receipt > small {
+  font-size: 10px;
+}
+
+#root .work-history-row strong {
+  font-size: 12px;
+}
+
+#root .work-history-row small,
+#root .work-history-row span,
+#root .work-history-row em {
+  font-size: 11px;
+}
+
+#root .work-empty,
+#root .work-notice {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+#root .work-game-header h2 {
+  font-size: 26px;
+  line-height: 1.12;
+}
+
+#root .work-game-header p {
+  font-size: 13px;
+}
+
+#root .work-game-timer small {
+  font-size: 10px;
+}
+
+#root .work-game-timer strong {
+  font-size: 24px;
+}
+
+#root .work-game-meta {
+  font-size: 11px;
+}
+
+#root .work-game-error {
+  min-height: 42px;
+  height: auto;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#root .work-challenge-card-head strong {
+  font-size: 14px;
+}
+
+#root .work-challenge-card-head p {
+  font-size: 12px;
+}
+
+#root .work-answered {
+  font-size: 11px;
+}
+
+#root .work-option-grid button {
+  min-height: 58px;
+  font-size: 13px;
+}
+
+#root .work-option-grid button strong {
+  font-size: 13px;
+}
+
+#root .work-option-grid button small {
+  font-size: 11px;
+}
+
+#root .work-confirm,
+#root .work-mini-receipt {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+#root .work-result-toast strong,
+#root .work-result-toast b,
+#root .work-result-toast button {
+  font-size: 12px;
+}
+
+#root .work-result-toast button {
+  min-width: 28px;
+  min-height: 28px;
+}
+
+#root .work-certification-toast > strong {
+  font-size: 14px;
+}
+
+#root .work-certification-toast > b,
+#root .work-certification-toast > p {
+  font-size: 12px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Persistent overlays: HUD, chat, guide, audio                               */
+/* -------------------------------------------------------------------------- */
+
+#root .player-hud {
+  width: min(340px, calc(100vw - 36px));
+  min-height: 86px;
+  padding: 10px 13px 10px 10px;
+}
+
+#root .player-hud-avatar {
+  width: 56px;
+  height: 62px;
+}
+
+#root .player-hud-avatar img {
+  width: 55px;
+  height: 68px;
+}
+
+#root .player-hud-avatar > span {
+  font-size: 10px;
+}
+
+#root .player-hud-kicker {
+  font-size: 10px;
+}
+
+#root .player-hud-head strong {
+  font-size: 15px;
+}
+
+#root .player-hud-head > small {
+  max-width: 96px;
+  font-size: 10px;
+}
+
+#root .player-hud-coin {
+  font-size: 15px;
+}
+
+#root .player-hud-coin small {
+  font-size: 10px;
+}
+
+#root .player-hud-xp {
+  font-size: 10px;
+}
+
+#root .player-hud-work > span {
+  font-size: 10px;
+}
+
+#root .player-hud-work > small {
+  font-size: 10px;
+}
+
+#root .player-hud-work button {
+  min-height: 30px;
+  font-size: 11px;
+}
+
+#root .combat-hotbar-title span,
+#root .combat-hotbar-title b {
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+#root .combat-slot > i {
+  font-size: 10px;
+}
+
+#root .combat-slot > span {
+  font-size: 10px;
+}
+
+#root .combat-use > b,
+#root .combat-use > small {
+  font-size: 10px;
+}
+
+#root .combat-notice {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+#root .game-channel-chat > header {
+  min-height: 50px;
+}
+
+#root .game-channel-chat > header strong {
+  font-size: 13px;
+}
+
+#root .game-channel-chat > header small {
+  font-size: 11px;
+}
+
+#root .game-channel-chat > header button {
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+}
+
+#root .game-channel-chat article b {
+  font-size: 13px;
+}
+
+#root .game-channel-chat article time {
+  font-size: 10px;
+}
+
+#root .game-channel-chat article p {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+#root .game-channel-chat article.error {
+  min-height: 32px;
+  height: auto;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+#root .game-channel-chat form {
+  gap: 8px;
+  padding: 10px;
+}
+
+#root .game-channel-chat form input {
+  min-height: 42px;
+  font-size: 14px;
+}
+
+#root .game-channel-chat form button {
+  min-width: 64px;
+  min-height: 42px;
+  font-size: 12px;
+}
+
+#root .game-chat-dock {
+  min-height: 44px;
+  font-size: 13px;
+}
+
+#root .game-chat-dock > span {
+  font-size: 18px;
+}
+
+#root .game-chat-dock > b {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+}
+
+#root .new-player-guide {
+  width: min(340px, calc(100vw - 36px));
+  top: 202px;
+  max-height: min(560px, calc(100vh - 190px));
+}
+
+#root .guide-reopen {
+  top: 202px;
+}
+
+#root .new-player-guide header span,
+#root .new-player-guide header strong {
+  font-size: 11px;
+}
+
+#root .new-player-guide-next strong {
+  font-size: 16px;
+}
+
+#root .new-player-guide-next p {
+  font-size: 13px;
+}
+
+#root .new-player-guide-next button {
+  min-height: 40px;
+  font-size: 12px;
+}
+
+#root .new-player-guide li strong {
+  font-size: 13px;
+}
+
+#root .new-player-guide li small {
+  font-size: 10px;
+}
+
+#root .new-player-guide-quest,
+#root .new-player-guide-money {
+  font-size: 11px;
+}
+
+#root .new-player-guide footer {
+  font-size: 10px;
+}
+
+#root .audio-dock button {
+  min-width: 54px;
+  min-height: 46px;
+}
+
+#root .audio-dock button span {
+  font-size: 10px;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Studio / social / character and inventory panels                          */
+/* -------------------------------------------------------------------------- */
+
+#root .studio-hub,
+#root .social-hub,
+#root .mini-game-panel,
+#root .game-feature-layer,
+#root .character-panel,
+#root .store-panel {
+  font-size: var(--ui-body-size);
+}
+
+#root .studio-hub p,
+#root .social-hub p,
+#root .mini-game-panel p,
+#root .game-feature-layer p,
+#root .character-panel p,
+#root .store-panel p {
+  font-size: var(--ui-copy-size);
+  line-height: 1.55;
+}
+
+#root .studio-hub small,
+#root .social-hub small,
+#root .mini-game-panel small,
+#root .game-feature-layer small,
+#root .character-panel small,
+#root .store-panel small {
+  font-size: var(--ui-meta-size);
+}
+
+#root .studio-hub button,
+#root .social-hub button,
+#root .mini-game-panel button,
+#root .game-feature-layer button,
+#root .character-panel button,
+#root .store-panel button {
+  font-size: var(--ui-button-size);
+}
+
+#root .studio-hub input,
+#root .studio-hub select,
+#root .studio-hub textarea,
+#root .game-feature-layer input,
+#root .game-feature-layer select,
+#root .game-feature-layer textarea,
+#root .store-panel input,
+#root .store-panel select,
+#root .store-panel textarea {
+  min-height: 40px;
+  font-size: 14px;
+}
+
+#root .studio-main-head h1 {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+#root .studio-main-head p,
+#root .studio-welcome p {
+  font-size: 13px;
+}
+
+#root .studio-main-kicker,
+#root .studio-kicker {
+  font-size: 11px;
+}
+
+#root .studio-sidebar button,
+#root .studio-nav button {
+  font-size: 12px;
+}
+
+#root .studio-project-name strong,
+#root .studio-stage strong,
+#root .studio-mission-row strong,
+#root .studio-table-row strong {
+  font-size: 13px;
+}
+
+#root .studio-project-name small,
+#root .studio-stage small,
+#root .studio-mission-row small,
+#root .studio-table-row small,
+#root .studio-activity time {
+  font-size: 10px;
+}
+
+#root .studio-activity p {
+  font-size: 12px;
+}
+
+#root .studio-table-head {
+  font-size: 10px;
+}
+
+#root .studio-table-row {
+  font-size: 12px;
+}
+
+#root .mini-game-panel h2,
+#root .mini-game-panel h3 {
+  line-height: 1.15;
+}
+
+#root .mini-game-panel h2 {
+  font-size: 27px;
+}
+
+#root .mini-game-panel h3 {
+  font-size: 20px;
+}
+
+#root .mini-game-panel .station-lobby-title {
+  font-size: 27px;
+}
+
+#root .mini-game-panel .station-lobby-copy,
+#root .mini-game-panel .station-lobby-description {
+  font-size: 14px;
+}
+
+#root .mini-game-panel .station-lobby-meta,
+#root .mini-game-panel .mini-game-meta {
+  font-size: 11px;
+}
+
+#root .mini-game-panel .mini-game-start,
+#root .mini-game-panel .mini-game-action {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+#root .mini-game-panel .mini-game-hint,
+#root .mini-game-panel .mini-game-role {
+  font-size: 13px;
+}
+
+#root .mini-game-panel .mini-game-score,
+#root .mini-game-panel .mini-game-event {
+  font-size: 12px;
+}
+
+#root .character-panel h2,
+#root .character-panel h3 {
+  line-height: 1.15;
+}
+
+#root .character-panel h2 {
+  font-size: 24px;
+}
+
+#root .character-panel h3 {
+  font-size: 20px;
+}
+
+#root .character-panel .character-tab,
+#root .character-panel .character-label {
+  font-size: 12px;
+}
+
+#root .inventory-panel h2,
+#root .store-panel h2 {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+#root .inventory-panel h3,
+#root .store-panel h3 {
+  font-size: 20px;
+}
+
+#root .inventory-panel .inventory-meta,
+#root .inventory-panel .inventory-slot,
+#root .store-panel .store-meta {
+  font-size: 11px;
+}
+
+#root .store-panel .store-preview-kicker,
+#root .store-panel .store-section-kicker {
+  font-size: 10px;
+}
+
+#root .store-panel .store-header-wallet strong,
+#root .store-panel .store-outfit-card-head strong,
+#root .store-panel .store-catalog-head strong {
+  font-size: 14px;
+}
+
+#root .store-panel .store-header-wallet small,
+#root .store-panel .store-outfit-card-head small,
+#root .store-panel .store-catalog-head small {
+  font-size: 10px;
+}
+
+#root .store-panel .store-preview-copy p,
+#root .store-panel .store-outfit-description {
+  font-size: 12px;
+}
+
+#root .store-panel .store-layer-chips small,
+#root .store-panel .store-outfit-price,
+#root .store-panel .store-card-action {
+  font-size: 11px;
+}
+
+/* Outfit cards must keep the purchase affordance in a non-shrinking footer.
+ * The catalog scrolls as a whole; the price and CTA never disappear when the
+ * panel is shorter than the full collection. */
+#root .store-panel .store-grid {
+  align-content: start;
+  grid-auto-rows: minmax(142px, auto);
+}
+
+#root .store-panel .store-outfit-card {
+  min-height: 142px;
+}
+
+#root .store-panel .store-outfit-select {
+  flex: 1 1 auto;
+  min-height: 88px;
+}
+
+#root .store-panel .store-outfit-card-head strong {
+  font-size: 15px;
+}
+
+#root .store-panel .store-outfit-card-head small,
+#root .store-panel .store-outfit-card-head em {
+  font-size: 10px;
+}
+
+#root .store-panel .store-outfit-card-head em {
+  max-width: 96px;
+}
+
+#root .store-panel .store-outfit-description {
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+#root .store-panel .store-layer-chips small {
+  font-size: 10px;
+}
+
+#root .store-panel .store-outfit-footer {
+  display: flex;
+  visibility: visible;
+  flex: 0 0 auto;
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+#root .store-panel .store-outfit-price {
+  display: inline-flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 4px;
+  color: #ffe08a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#root .store-panel .store-outfit-price small {
+  font-size: 10px;
+}
+
+#root .store-panel .store-outfit-price.is-owned {
+  color: #c8f267;
+}
+
+#root .store-panel .store-card-action {
+  display: inline-flex;
+  min-width: 120px;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+#root .store-panel .store-card-action:disabled {
+  opacity: .72;
+}
+
+#root .store-panel .store-card-action:disabled:not(.is-equipped) {
+  border-color: rgba(255,184,108,.3);
+  color: #d9c8a9;
+  background: rgba(255,184,108,.16);
+}
+
+@media (max-width: 680px) {
+  #root .store-panel .store-grid {
+    grid-auto-rows: auto;
+  }
+
+  #root .store-panel .store-outfit-card {
+    min-height: 0;
+  }
+
+  #root .store-panel .store-outfit-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  #root .store-panel .store-outfit-price {
+    flex: 1 1 100%;
+  }
+
+  #root .store-panel .store-card-action {
+    width: 100%;
+    min-height: 42px;
+  }
+}
+
+/* Store product cards: show the item clearly and keep only the purchase
+ * information needed to make a quick decision. The detailed description,
+ * rarity and layer breakdown remain available in the large preview panel. */
+#root .store-panel .store-grid {
+  grid-auto-rows: minmax(198px, auto);
+}
+
+#root .store-panel .store-outfit-card {
+  min-height: 0;
+}
+
+#root .store-panel .store-outfit-select {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 11px 11px 5px;
+}
+
+#root .store-panel .store-outfit-card-name {
+  display: block;
+  overflow: hidden;
+  color: #eef5ea;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#root .store-panel .store-outfit-card-preview {
+  display: flex;
+  width: calc(100% - 20px);
+  height: 112px;
+  flex: 0 0 112px;
+  align-items: center;
+  justify-content: center;
+  margin: 0 10px 9px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 7px;
+  background: radial-gradient(circle at 50% 25%, rgba(255,224,138,.14), rgba(4,14,18,.12) 70%), rgba(4,14,18,.45);
+}
+
+#root .store-panel .store-outfit-card-preview canvas {
+  width: 106px;
+  height: 106px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+#root .store-panel .store-outfit-card-preview .lpc-avatar-preview-loading {
+  display: none;
+}
+
+#root .store-panel .store-outfit-footer {
+  min-height: 52px;
+  padding: 8px 10px;
+}
+
+#root .store-panel .store-outfit-price {
+  min-width: 0;
+  color: #ffe08a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#root .store-panel .store-outfit-price small {
+  font-size: 10px;
+}
+
+#root .store-panel .store-card-action {
+  min-width: 108px;
+  min-height: 38px;
+  padding: 9px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+@media (max-width: 680px) {
+  #root .store-panel .store-grid {
+    grid-auto-rows: auto;
+  }
+
+  #root .store-panel .store-outfit-card-preview {
+    height: 148px;
+    flex-basis: 148px;
+  }
+
+  #root .store-panel .store-outfit-card-preview canvas {
+    width: 140px;
+    height: 140px;
+  }
+
+  #root .store-panel .store-outfit-footer {
+    flex-wrap: nowrap;
+  }
+
+  #root .store-panel .store-outfit-price {
+    flex: 1 1 auto;
+  }
+
+  #root .store-panel .store-card-action {
+    width: auto;
+    min-width: 108px;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Betting and card games: readable labels, unchanged chip/card proportions   */
+/* -------------------------------------------------------------------------- */
+
+#root .casino-shell,
+#root .rps-panel,
+#root .pvp-table-lobby,
+#root .tien-len-panel,
+#root .texas-panel {
+  font-size: var(--ui-body-size);
+}
+
+#root .casino-shell p,
+#root .rps-panel p,
+#root .pvp-table-lobby p,
+#root .tien-len-panel p,
+#root .texas-panel p {
+  font-size: var(--ui-copy-size);
+  line-height: 1.5;
+}
+
+#root .casino-shell small,
+#root .rps-panel small,
+#root .pvp-table-lobby small,
+#root .tien-len-panel small,
+#root .texas-panel small {
+  font-size: var(--ui-meta-size);
+}
+
+#root .casino-shell button,
+#root .rps-panel button,
+#root .pvp-table-lobby button,
+#root .tien-len-panel button,
+#root .texas-panel button {
+  font-size: var(--ui-button-size);
+}
+
+#root .casino-shell .casino-brand small,
+#root .casino-shell .casino-phase,
+#root .casino-shell .casino-bet-label,
+#root .casino-shell .casino-table-meta,
+#root .casino-shell .casino-guide,
+#root .casino-shell .casino-history {
+  font-size: 11px;
+}
+
+#root .casino-shell .casino-bet-amount,
+#root .casino-shell .casino-wallet,
+#root .casino-shell .casino-result,
+#root .casino-shell .casino-toast {
+  font-size: 13px;
+}
+
+#root .casino-shell .casino-toast strong,
+#root .casino-shell .casino-toast b {
+  font-size: 13px;
+}
+
+#root .casino-shell .casino-chip {
+  min-width: 40px;
+  min-height: 40px;
+  font-size: 10px;
+}
+
+#root .casino-shell .casino-action,
+#root .casino-shell .casino-bet-button,
+#root .casino-shell .casino-control {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+/* Anchor casino help to a dedicated header slot. It must never be positioned
+ * from the table surface because dealer cards and betting spots change by game. */
+#root .casino-header {
+  grid-template-columns: minmax(210px, 1fr) auto auto auto;
+}
+
+#root .casino-header-tools {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 78px;
+  height: 100%;
+}
+
+#root .casino-header-tools .casino-guide-reopen {
+  position: relative;
+  inset: auto;
+  z-index: 2;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+#root .casino-header-tools .casino-guide {
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(300px, calc(100vw - 32px));
+  max-height: min(440px, calc(100dvh - 100px));
+  padding: 14px;
+  overflow: auto;
+}
+
+#root .casino-header-tools .casino-guide header span {
+  font-size: 11px;
+}
+
+#root .casino-header-tools .casino-guide header button {
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+}
+
+#root .casino-header-tools .casino-guide > strong {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#root .casino-header-tools .casino-guide li {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#root .casino-header-tools .casino-guide li b {
+  font-size: 10px;
+}
+
+#root .casino-header-tools .casino-guide p {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Help is optional: the close control must remain a real, hit-testable
+ * button even while the live table is re-rendering. A second, explicit
+ * preference turns all casino guides off instead of leaving a persistent
+ * '?' launcher behind. */
+#root .casino-header-tools .casino-guide,
+#root .casino-header-tools .casino-guide * {
+  pointer-events: auto;
+}
+
+#root .casino-header-tools .casino-guide header button,
+#root .casino-header-tools .casino-guide-reopen {
+  cursor: pointer;
+}
+
+#root .casino-header-tools .casino-guide .casino-guide-close {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  pointer-events: auto;
+}
+
+#root .casino-header-tools .casino-guide footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+
+#root .casino-header-tools .casino-guide footer span {
+  color: #788980;
+  font: 9px 'DM Mono', monospace;
+  letter-spacing: .35px;
+}
+
+#root .casino-header-tools .casino-guide footer button {
+  padding: 4px 0;
+  border: 0;
+  color: var(--casino-accent);
+  background: transparent;
+  font: 10px 'DM Mono', monospace;
+  white-space: nowrap;
+}
+
+#root .casino-header-tools .casino-guide footer button:hover {
+  color: #fff7e6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Put the phase clock in the visual center of the table surface. It is a
+ * normal flow item rather than an absolute overlay, so the dealer, cards and
+ * betting spots are pushed down instead of being covered by the countdown. */
+#root .casino-phasebar > div {
+  width: 100%;
+}
+
+#root .casino-phasebar strong {
+  font-size: 11px;
+}
+
+#root .casino-phase-timer {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 18px;
+  width: min(360px, calc(100% - 32px));
+  min-height: 90px;
+  box-sizing: border-box;
+  /* Leave a clear lane below the transient result toast, which is anchored
+   * near the header. The timer remains in normal flow so table content moves
+   * down instead of being covered. */
+  margin: 12px auto 14px;
+  padding: 12px 16px 13px;
+  border: 2px solid color-mix(in srgb, var(--casino-accent) 58%, transparent);
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--casino-accent) 17%, #07151a 83%), rgba(6,18,22,.96));
+  box-shadow: 0 8px 22px rgba(0,0,0,.3), inset 0 0 20px color-mix(in srgb, var(--casino-accent) 8%, transparent), 0 0 22px color-mix(in srgb, var(--casino-accent) 12%, transparent);
+}
+
+#root .casino-phase-timer-copy {
+  min-width: 0;
+  align-self: center;
+}
+
+#root .casino-phase-timer-copy > span {
+  display: block;
+  color: color-mix(in srgb, var(--casino-accent) 78%, white 22%);
+  font: 10px 'DM Mono', monospace;
+  letter-spacing: 1.2px;
+}
+
+#root .casino-phase-timer-copy > strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #fff8df;
+  font-size: 15px;
+  line-height: 1.18;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#root .casino-phase-timer-copy > small {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #abc0b5;
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#root .casino-phase-clock {
+  display: flex;
+  align-items: baseline;
+  align-self: center;
+  gap: 5px;
+  min-width: 104px;
+  padding-left: 16px;
+  border-left: 1px solid color-mix(in srgb, var(--casino-accent) 30%, transparent);
+}
+
+#root .casino-phase-clock > b {
+  color: #f6ffe7;
+  font: 700 clamp(38px, 5vw, 52px)/.9 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: -2px;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--casino-accent) 42%, transparent);
+}
+
+#root .casino-phase-clock > i {
+  color: color-mix(in srgb, var(--casino-accent) 76%, white 24%);
+  font: 11px 'DM Mono', monospace;
+  font-style: normal;
+  letter-spacing: .7px;
+}
+
+#root .casino-phase-progress {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 999px;
+  background: rgba(0,0,0,.38);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.42);
+}
+
+#root .casino-phase-progress > i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--casino-accent) 74%, #fff 26%), var(--casino-accent));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--casino-accent) 48%, transparent);
+  transition: width .2s linear;
+}
+
+#root .casino-phase-timer.is-live .casino-phase-progress > i {
+  width: 42%;
+  animation: casino-phase-live 1.35s ease-in-out infinite alternate;
+}
+
+#root .casino-phase-timer.is-urgent {
+  border-color: rgba(255,111,103,.82);
+  background: linear-gradient(135deg, rgba(92,27,31,.9), rgba(29,16,20,.96));
+  box-shadow: 0 8px 24px rgba(0,0,0,.38), 0 0 24px rgba(255,77,69,.18);
+  animation: casino-phase-urgent .7s steps(2) infinite;
+}
+
+#root .casino-phase-timer.is-urgent .casino-phase-clock > b,
+#root .casino-phase-timer.is-urgent .casino-phase-clock > i {
+  color: #ffd0c6;
+  text-shadow: 0 0 14px rgba(255,92,82,.46);
+}
+
+#root .casino-phase-timer.is-urgent .casino-phase-progress > i {
+  background: linear-gradient(90deg, #ffb09f, #ef5e59);
+  box-shadow: 0 0 13px rgba(255,92,82,.52);
+}
+
+@keyframes casino-phase-live {
+  from { transform: translateX(-18%); opacity: .45; }
+  to { transform: translateX(178%); opacity: 1; }
+}
+
+@keyframes casino-phase-urgent {
+  50% { filter: brightness(1.08); }
+}
+
+#root .rps-panel .rps-choice strong {
+  font-size: 14px;
+}
+
+#root .rps-panel .rps-choice small,
+#root .rps-panel .rps-status,
+#root .rps-panel .rps-history {
+  font-size: 11px;
+}
+
+#root .rps-panel .rps-choice button,
+#root .rps-panel .rps-action {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+#root .rps-panel .rps-result,
+#root .rps-panel .rps-result strong {
+  font-size: 13px;
+}
+
+#root .pvp-table-lobby .pvp-kicker,
+#root .pvp-table-lobby .pvp-label {
+  font-size: 11px;
+}
+
+#root .pvp-table-lobby h2,
+#root .pvp-table-lobby h3 {
+  line-height: 1.15;
+}
+
+#root .pvp-table-lobby h2 {
+  font-size: 25px;
+}
+
+#root .pvp-table-lobby h3 {
+  font-size: 18px;
+}
+
+#root .pvp-table-lobby .pvp-table-stat,
+#root .pvp-table-lobby .pvp-table-meta {
+  font-size: 11px;
+}
+
+#root .pvp-table-lobby .pvp-action,
+#root .pvp-table-lobby .pvp-table-action {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+#root .tien-len-panel .tien-len-notice,
+#root .texas-panel .texas-notice {
+  min-height: 40px;
+  height: auto;
+  padding: 9px 12px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#root .tien-len-panel .tien-len-action,
+#root .texas-panel .texas-action {
+  min-height: 42px;
+  font-size: 12px;
+}
+
+/* Readable muted text without making disabled controls look active. */
+#root .work-shell p,
+#root .studio-hub p,
+#root .social-hub p,
+#root .mini-game-panel p,
+#root .game-feature-layer p,
+#root .casino-shell p,
+#root .rps-panel p,
+#root .pvp-table-lobby p {
+  color: var(--ui-muted-readable);
+}
+
+#root .work-shell .work-page-title h2,
+#root .work-shell .work-section-head h3,
+#root .work-shell .work-career-card h3,
+#root .work-shell .work-career-hero h3,
+#root .work-shell .work-job-title strong,
+#root .studio-hub h1,
+#root .studio-hub h2,
+#root .studio-hub h3,
+#root .mini-game-panel h2,
+#root .mini-game-panel h3,
+#root .character-panel h2,
+#root .character-panel h3,
+#root .store-panel h2,
+#root .store-panel h3,
+#root .pvp-table-lobby h2,
+#root .pvp-table-lobby h3 {
+  color: #f1f5e9;
+}
+
+#root .work-job-card.is-locked,
+#root .pvp-table-card.is-coming-soon {
+  opacity: .82;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile                                                                  */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 780px) {
+  #root .work-layer {
+    padding: 6px;
+    align-items: center;
+  }
+
+  #root .work-shell {
+    width: 100%;
+    height: min(96vh, 900px);
+    height: min(96dvh, 900px);
+    max-height: calc(100dvh - 12px);
+    border-radius: 14px;
+  }
+
+  #root .work-topbar {
+    min-height: 64px;
+    padding: 10px 12px;
+  }
+
+  #root .work-brand > span {
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
+  }
+
+  #root .work-brand strong {
+    font-size: 12px;
+  }
+
+  #root .work-brand small {
+    font-size: 10px;
+  }
+
+  #root .work-location {
+    display: none;
+  }
+
+  #root .work-coin {
+    font-size: 12px;
+  }
+
+  #root .work-close {
+    width: 34px;
+    height: 34px;
+    font-size: 22px;
+  }
+
+  #root .work-sidebar {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px;
+  }
+
+  #root .work-sidebar > button {
+    min-height: 42px;
+    padding: 8px 4px;
+    font-size: 12px;
+  }
+
+  #root .work-sidebar-bottom {
+    display: none;
+  }
+
+  #root .work-main {
+    padding: 18px 12px 24px;
+  }
+
+  #root .work-page-title h2 {
+    font-size: 24px;
+  }
+
+  #root .work-page-title p {
+    font-size: 13px;
+  }
+
+  #root .work-cap-pill {
+    font-size: 10px;
+  }
+
+  #root .work-stat-grid > div {
+    min-height: 78px;
+    padding: 10px;
+  }
+
+  #root .work-stat-grid small {
+    font-size: 10px;
+  }
+
+  #root .work-stat-grid strong {
+    font-size: 18px;
+  }
+
+  #root .work-stat-grid em {
+    font-size: 11px;
+  }
+
+  #root .work-job-card {
+    grid-template-columns: 40px minmax(0, 1fr);
+    gap: 10px;
+    padding: 11px;
+  }
+
+  #root .work-job-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  #root .work-job-start {
+    grid-column: 2;
+    width: 100%;
+  }
+
+  #root .work-job-title strong {
+    font-size: 14px;
+  }
+
+  #root .work-job-copy p {
+    font-size: 12px;
+  }
+
+  #root .work-career-card {
+    padding: 14px;
+  }
+
+  #root .work-career-card h3 {
+    font-size: 20px;
+  }
+
+  #root .work-career-card p {
+    font-size: 13px;
+  }
+
+  #root .work-career-hero {
+    gap: 14px;
+    padding: 14px;
+  }
+
+  #root .work-career-hero h3 {
+    font-size: 23px;
+  }
+
+  #root .work-career-hero-stat strong {
+    font-size: 22px;
+  }
+
+  #root .work-game-panel {
+    width: 100%;
+    max-height: calc(100dvh - 12px);
+  }
+
+  #root .work-game-header h2 {
+    font-size: 22px;
+  }
+
+  #root .work-game-header p {
+    font-size: 12px;
+  }
+
+  #root .work-game-meta {
+    font-size: 11px;
+  }
+
+  #root .work-option-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #root .work-option-grid button {
+    min-height: 56px;
+  }
+
+  #root .player-hud {
+    /* Leave a 52px right rail for the floating action buttons. */
+    width: min(318px, calc(100vw - 72px));
+    min-height: 82px;
+    top: 10px;
+    left: 10px;
+  }
+
+  #root .player-hud-avatar {
+    width: 48px;
+    height: 54px;
+  }
+
+  #root .player-hud-avatar img {
+    width: 48px;
+    height: 59px;
+  }
+
+  #root .player-hud-kicker {
+    font-size: 10px;
+  }
+
+  #root .player-hud-head strong {
+    font-size: 13px;
+  }
+
+  #root .player-hud-head > small,
+  #root .player-hud-coin small,
+  #root .player-hud-xp {
+    font-size: 10px;
+  }
+
+  #root .player-hud-head {
+    gap: 5px;
+  }
+
+  #root .player-hud-head > small {
+    max-width: 112px;
+  }
+
+  #root .player-hud-coin {
+    font-size: 13px;
+  }
+
+  #root .player-hud-work > span,
+  #root .player-hud-work > small {
+    font-size: 10px;
+  }
+
+  #root .player-hud-work button {
+    min-height: 30px;
+    font-size: 10px;
+  }
+
+  #root .game-channel-chat {
+    width: calc(100vw - 16px);
+    max-width: 360px;
+    height: min(330px, 48vh);
+  }
+
+  #root .game-channel-chat article p {
+    font-size: 14px;
+  }
+
+  #root .new-player-guide {
+    /* The right rail is reserved for helper actions, even when the guide is
+     * expanded or the device is narrower than the normal mobile width. */
+    width: min(330px, calc(100vw - 72px));
+    top: 202px;
+    max-height: min(520px, calc(100dvh - 176px));
+  }
+
+  #root .guide-reopen {
+    max-width: calc(100vw - 72px);
+    top: 202px;
+  }
+
+  #root .helper-button-backdrop {
+    top: 82px;
+    right: max(10px, env(safe-area-inset-right));
+    bottom: auto;
+    height: auto;
+  }
+
+  #root .new-player-guide-next strong {
+    font-size: 15px;
+  }
+
+  #root .new-player-guide-next p {
+    font-size: 13px;
+  }
+
+  #root .new-player-guide li strong {
+    font-size: 12px;
+  }
+
+  #root .new-player-guide li small {
+    font-size: 10px;
+  }
+
+  #root .audio-dock button {
+    min-width: 50px;
+    min-height: 44px;
+  }
+
+  #root .audio-dock {
+    right: 8px;
+    bottom: 8px;
+  }
+
+  #root .work-closed-dock {
+    right: 8px;
+    bottom: 70px;
+    box-sizing: border-box;
+    width: min(230px, calc(100vw - 20px));
+    min-width: 0;
+  }
+
+  #root .audio-dock button span {
+    font-size: 10px;
+  }
+
+  #root .combat-slot > i {
+    font-size: 10px;
+  }
+
+  #root .combat-use > b,
+  #root .combat-use > small {
+    font-size: 10px;
+  }
+
+  #root .mini-game-panel {
+    padding: 14px;
+  }
+
+  #root .mini-game-panel .station-lobby-title {
+    font-size: 23px;
+  }
+
+  #root .mini-game-panel .station-lobby-copy,
+  #root .mini-game-panel .station-lobby-description {
+    font-size: 13px;
+  }
+
+  #root .mini-game-panel .mini-game-action,
+  #root .mini-game-panel .mini-game-start {
+    min-height: 42px;
+  }
+
+  #root .casino-shell,
+  #root .rps-panel,
+  #root .pvp-table-lobby,
+  #root .tien-len-panel,
+  #root .texas-panel {
+    max-width: calc(100vw - 16px);
+  }
+
+  #root .casino-header {
+    /* The tools column contains both the help launcher and the close button.
+     * Reserve its real width so it cannot collapse into the wallet column on
+     * narrow screens. */
+    grid-template-columns: minmax(0, 1fr) max-content 72px;
+    gap: 6px;
+  }
+
+  #root .casino-header-tools {
+    box-sizing: border-box;
+    width: 72px;
+    min-width: 72px;
+    gap: 6px;
+  }
+
+  #root .casino-brand {
+    min-width: 0;
+  }
+
+  #root .casino-brand h2 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #root .casino-header-wallet {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  #root .casino-header-tools .casino-guide-reopen {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+  }
+
+  #root .casino-header-tools .casino-guide {
+    top: calc(100% + 8px);
+    right: -4px;
+    width: min(300px, calc(100vw - 28px));
+    max-height: calc(100dvh - 110px);
+  }
+
+  #root .casino-phase-timer {
+    /* The result toast is anchored just below the mobile header. Keep a
+     * little extra breathing room here because the compact table padding
+     * otherwise lets the two boxes touch during a round transition. */
+    width: min(360px, calc(100% - 12px));
+    min-height: 88px;
+    margin: 18px auto 14px;
+    padding: 11px 12px 12px;
+    gap: 6px 12px;
+  }
+
+  #root .casino-phase-timer-copy > strong {
+    font-size: 13px;
+  }
+
+  #root .casino-phase-timer-copy > small {
+    font-size: 10px;
+  }
+
+  #root .casino-phase-clock {
+    min-width: 92px;
+    padding-left: 12px;
+  }
+
+  #root .casino-phase-clock > b {
+    font-size: 38px;
+  }
+
+  #root .casino-shell .casino-action,
+  #root .casino-shell .casino-bet-button,
+  #root .casino-shell .casino-control,
+  #root .rps-panel .rps-choice button,
+  #root .rps-panel .rps-action,
+  #root .pvp-table-lobby .pvp-action,
+  #root .pvp-table-lobby .pvp-table-action,
+  #root .tien-len-panel .tien-len-action,
+  #root .texas-panel .texas-action {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  /* The combat bar and audio controls cannot share one row below 400px.
+   * Stack the secondary controls above the combat bar, then place the work
+   * teaser above both. This keeps every touch target fully clickable. */
+  #root .audio-dock {
+    right: 8px;
+    bottom: 70px;
+  }
+
+  #root .work-closed-dock {
+    right: 8px;
+    bottom: 134px;
+  }
+
+  #root .work-page-title h2 {
+    font-size: 23px;
+  }
+
+  #root .work-section-head h3 {
+    font-size: 18px;
+  }
+
+  #root .work-job-title strong {
+    font-size: 13px;
+  }
+
+  #root .work-job-copy p,
+  #root .work-career-card p {
+    font-size: 12px;
+  }
+
+  #root .work-job-reward,
+  #root .work-career-card > small,
+  #root .work-career-card .career-fit {
+    font-size: 11px;
+  }
+
+  #root .work-primary,
+  #root .work-quiet,
+  #root .work-danger {
+    font-size: 11px;
+  }
+
+  #root .game-channel-chat {
+    height: min(310px, 45vh);
+  }
+}
+
+/* Final game typography audit.
+ * Game surfaces previously mixed 4–8px metadata with normal copy, which made
+ * important state, betting, and action text hard to read. Keep this scoped to
+ * playable overlays so the rest of the studio can retain its compact density.
+ * Card ranks/suits remain on their dedicated card scale below. */
+#root .casino-shell,
+#root .mini-game-panel,
+#root .rps-panel,
+#root .tag-game-panel {
+  --game-body-size: 14px;
+  --game-label-size: 11px;
+  --game-button-size: 13px;
+}
+
+#root .casino-shell p,
+#root .mini-game-panel p,
+#root .rps-panel p,
+#root .tag-game-panel p {
+  font-size: var(--game-body-size);
+  line-height: 1.5;
+}
+
+#root .casino-shell small,
+#root .mini-game-panel small,
+#root .rps-panel small,
+#root .tag-game-panel small {
+  font-size: var(--game-label-size);
+  line-height: 1.35;
+}
+
+#root .casino-shell button:not(.casino-close):not(.casino-guide-close),
+#root .mini-game-panel button:not(.mini-game-close),
+#root .rps-panel button:not(.rps-close),
+#root .tag-game-panel button {
+  font-size: var(--game-button-size);
+  line-height: 1.25;
+}
+
+#root .casino-shell .casino-close,
+#root .casino-shell .casino-guide-close,
+#root .mini-game-panel .mini-game-close,
+#root .rps-panel .rps-close {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* Shared casino chrome, phase status, dealer identity, and betting controls. */
+#root .casino-shell .casino-brand small,
+#root .casino-shell .casino-round-meta span,
+#root .casino-shell .casino-header-wallet span,
+#root .casino-shell .casino-chip-rack > span,
+#root .casino-shell .casino-player-summary > span,
+#root .casino-shell .casino-history > span,
+#root .casino-shell .casino-phasebar span,
+#root .casino-shell .casino-phasebar strong,
+#root .casino-shell .casino-round-meta em,
+#root .casino-shell .casino-dealer small,
+#root .casino-shell .casino-dealer em,
+#root .casino-shell .casino-dealer-avatar,
+#root .casino-shell .casino-phase-timer-copy > span,
+#root .casino-shell .casino-phase-timer-copy > small,
+#root .casino-shell .casino-phase-clock > i {
+  font-size: var(--game-label-size);
+  line-height: 1.35;
+}
+
+#root .casino-shell .casino-brand h2 {
+  font-size: 22px;
+}
+
+#root .casino-shell .casino-round-meta b,
+#root .casino-shell .casino-header-wallet b,
+#root .casino-shell .casino-player-summary b {
+  font-size: 14px;
+}
+
+#root .casino-shell .casino-phasebar strong {
+  font-size: 12px;
+}
+
+#root .casino-shell .casino-phase-timer-copy > strong {
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+#root .casino-shell .casino-dealer strong {
+  font-size: 12px;
+}
+
+#root .casino-shell .casino-chip {
+  font-size: 11px;
+}
+
+#root .casino-shell .casino-toast,
+#root .casino-shell .casino-toast strong {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#root .casino-shell .casino-bet-area {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+#root .casino-shell .casino-bet-area > small,
+#root .casino-shell .casino-bet-area > span:first-child em,
+#root .casino-shell .casino-bet-meta,
+#root .casino-shell .casino-bet-meta .casino-bet-total,
+#root .casino-shell .casino-bet-meta .casino-bet-players {
+  font-size: var(--game-label-size);
+  line-height: 1.3;
+}
+
+#root .casino-shell .casino-bet-meta .casino-bet-players svg {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+}
+
+#root .casino-shell .casino-wager-amount {
+  font-size: 12px;
+}
+
+#root .casino-shell .casino-wager-amount small {
+  font-size: 10px;
+}
+
+#root .casino-shell .casino-decision-bar button,
+#root .casino-shell .casino-decision-bar small {
+  font-size: 13px;
+}
+
+#root .casino-shell .casino-decision-bar small {
+  line-height: 1.3;
+}
+
+#root .casino-shell .casino-bet-legend > span,
+#root .casino-shell .casino-bet-legend > small,
+#root .casino-shell .casino-history-token,
+#root .casino-shell .casino-history-dot,
+#root .casino-shell .casino-station-name {
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+/* Baccarat, Blackjack, Sic Bo, Bầu Cua, Lucky Draw, and shared table labels. */
+#root .casino-shell .casino-baccarat-hand > span,
+#root .casino-shell .casino-table-center small,
+#root .casino-shell .casino-table-center em,
+#root .casino-shell .casino-card-placeholder,
+#root .casino-shell .casino-poker-dealer small,
+#root .casino-shell .casino-poker-player small,
+#root .casino-shell .casino-house-hand > span,
+#root .casino-shell .casino-player-hand > span,
+#root .casino-shell .casino-poker-dealer > span,
+#root .casino-shell .casino-poker-player > span,
+#root .casino-shell .casino-community > span,
+#root .casino-shell .casino-blackjack-rule small,
+#root .casino-shell .casino-blackjack-rule span {
+  font-size: var(--game-label-size);
+  line-height: 1.35;
+}
+
+#root .casino-shell .casino-baccarat-hand > b,
+#root .casino-shell .casino-house-hand > strong,
+#root .casino-shell .casino-player-hand > strong {
+  font-size: 17px;
+}
+
+#root .casino-shell .casino-bowl,
+#root .casino-shell .casino-die,
+#root .casino-shell .baucua-grid .casino-bet-area > span:first-child > em,
+#root .casino-shell .casino-reel-machine > strong {
+  font-size: 12px;
+}
+
+#root .casino-shell .blackjack-dealer-identity small,
+#root .casino-shell .blackjack-dealer-score small,
+#root .casino-shell .blackjack-dealer-rules small,
+#root .casino-shell .blackjack-spots-heading span,
+#root .casino-shell .blackjack-spots-heading strong,
+#root .casino-shell .blackjack-spots-heading small,
+#root .casino-shell .blackjack-spot > header span,
+#root .casino-shell .blackjack-spot > header b,
+#root .casino-shell .blackjack-spot > header small,
+#root .casino-shell .blackjack-spot-player em,
+#root .casino-shell .blackjack-spot-wager,
+#root .casino-shell .blackjack-spot-empty strong,
+#root .casino-shell .blackjack-spot-empty small,
+#root .casino-shell .blackjack-spot footer small,
+#root .casino-shell .blackjack-turn-status span,
+#root .casino-shell .blackjack-turn-status small {
+  font-size: var(--game-label-size);
+  line-height: 1.3;
+}
+
+#root .casino-shell .blackjack-dealer-identity strong,
+#root .casino-shell .blackjack-spot-player strong,
+#root .casino-shell .blackjack-spot-wager b,
+#root .casino-shell .blackjack-turn-status strong {
+  font-size: 13px;
+}
+
+#root .casino-shell .blackjack-spot footer strong {
+  font-size: 17px;
+}
+
+#root .casino-shell .blackjack-spot .casino-bet-area {
+  font-size: 12px;
+}
+
+#root .casino-shell .blackjack-dealer-score b {
+  font-size: 22px;
+}
+
+#root .casino-shell .casino-reel-machine header {
+  font-size: 16px;
+}
+
+/* PVP lobby and table-picker text. */
+#root .casino-shell .pvp-lobby-kicker,
+#root .casino-shell .pvp-bot-button,
+#root .casino-shell .pvp-bot-button small,
+#root .casino-shell .pvp-table-lobby-toolbar,
+#root .casino-shell .pvp-table-lobby-toolbar small,
+#root .casino-shell .pvp-stake-filters button,
+#root .casino-shell .pvp-table-status,
+#root .casino-shell .pvp-table-card-top > b small,
+#root .casino-shell .pvp-table-id,
+#root .casino-shell .pvp-room-code span,
+#root .casino-shell .pvp-room-code small,
+#root .casino-shell .pvp-table-card-stats small,
+#root .casino-shell .pvp-table-card-stats strong,
+#root .casino-shell .pvp-table-card-bottom > span,
+#root .casino-shell .pvp-table-card-bottom button,
+#root .casino-shell .pvp-table-lobby-foot p,
+#root .casino-shell .pvp-table-lobby-foot small {
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+#root .casino-shell .pvp-lobby-hero h3 {
+  font-size: 22px;
+}
+
+#root .casino-shell .pvp-lobby-hero p {
+  font-size: 13px;
+}
+
+#root .casino-shell .pvp-table-card-top > b,
+#root .casino-shell .pvp-room-code strong {
+  font-size: 18px;
+}
+
+#root .casino-shell .pvp-table-card h4 {
+  font-size: 16px;
+}
+
+#root .casino-shell .pvp-table-card-stats strong {
+  font-size: 11px;
+}
+
+/* Tiến Lên: the hand label and seat status are gameplay information, not
+ * decorative metadata, so they stay at the same readable scale as actions. */
+#root .casino-shell .tien-len-kicker,
+#root .casino-shell .tien-len-game-head h3 small,
+#root .casino-shell .tien-len-turn-pill small,
+#root .casino-shell .tien-len-table-brand small,
+#root .casino-shell .tien-len-pile-label,
+#root .casino-shell .tien-len-center-pile > small,
+#root .casino-shell .tien-len-empty-pile small,
+#root .casino-shell .tien-len-seat-copy span,
+#root .casino-shell .tien-len-seat-copy small,
+#root .casino-shell .tien-len-seat-corner > em,
+#root .casino-shell .tien-len-flying-play > span,
+#root .casino-shell .tien-len-lobby-head > strong small,
+#root .casino-shell .tien-len-seat small {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+#root .casino-shell .tien-len-game-head h3 {
+  font-size: 20px;
+}
+
+#root .casino-shell .tien-len-turn-pill strong,
+#root .casino-shell .tien-len-center-pile > strong,
+#root .casino-shell .tien-len-seat-copy strong,
+#root .casino-shell .tien-len-hand-label,
+#root .casino-shell .tien-len-lobby-notice {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+#root .casino-shell .tien-len-table-brand span {
+  font-size: 24px;
+}
+
+#root .casino-shell .tien-len-seat-avatar,
+#root .casino-shell .tien-len-seat > span,
+#root .casino-shell .tien-len-mini-player > b {
+  font-size: 10px;
+}
+
+#root .casino-shell .tien-len-mini-player > span,
+#root .casino-shell .tien-len-last-player {
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+#root .casino-shell .tien-len-hand-label small,
+#root .casino-shell .tien-len-action-bar button,
+#root .casino-shell .tien-len-action-bar button small,
+#root .casino-shell .tien-len-notice,
+#root .casino-shell .tien-len-notice small,
+#root .casino-shell .tien-len-entry-copy p,
+#root .casino-shell .tien-len-lobby-head p,
+#root .casino-shell .tien-len-complete p,
+#root .casino-shell .tien-len-sync p {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+#root .casino-shell .tien-len-action-bar button,
+#root .casino-shell .tien-len-entry-actions button,
+#root .casino-shell .tien-len-lobby-actions button,
+#root .casino-shell .tien-len-result-actions button {
+  font-size: 13px;
+}
+
+#root .casino-shell .tien-len-entry-actions button small,
+#root .casino-shell .tien-len-lobby-actions button small {
+  font-size: 10px;
+}
+
+#root .casino-shell .tien-len-notice-copy {
+  font-size: 11px;
+}
+
+/* Texas Hold'em and chess seat/action/status text. */
+#root .casino-shell .texas-kicker,
+#root .casino-shell .texas-buyin b,
+#root .casino-shell .texas-buyin small,
+#root .casino-shell .texas-board > span,
+#root .casino-shell .texas-board > small,
+#root .casino-shell .texas-seat header em,
+#root .casino-shell .texas-seat header > i,
+#root .casino-shell .texas-seat footer strong,
+#root .casino-shell .texas-seat footer small,
+#root .casino-shell .texas-hole > span,
+#root .casino-shell .texas-log span,
+#root .casino-shell .texas-actions label,
+#root .casino-shell .texas-host-note,
+#root .casino-shell .texas-auto-start,
+#root .casino-shell .texas-next-hand,
+#root .casino-shell .texas-pot-payout,
+#root .casino-shell .texas-chip-flight,
+#root .casino-shell .texas-result-payout small {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+#root .casino-shell .texas-board > strong,
+#root .casino-shell .texas-seat header b,
+#root .casino-shell .texas-seat-turn-timer small,
+#root .casino-shell .texas-seat-turn-timer i,
+#root .casino-shell .texas-result p,
+#root .casino-shell .texas-result h3,
+#root .casino-shell .texas-result-payout span,
+#root .casino-shell .texas-result-payout strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+#root .casino-shell .texas-seat-turn-timer b,
+#root .casino-shell .texas-result > span {
+  font-size: 18px;
+}
+
+#root .casino-shell .texas-actions button,
+#root .casino-shell .texas-buyin button,
+#root .casino-shell .texas-result button {
+  font-size: 13px;
+}
+
+#root .casino-shell .texas-board-meta,
+#root .casino-shell .texas-hand-result,
+#root .casino-shell .texas-action-card,
+#root .casino-shell .texas-board-chip,
+#root .casino-shell .texas-board-chip small,
+#root .casino-shell .texas-board-chip i {
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+#root .casino-shell .casino-chess-opponent > div > span,
+#root .casino-shell .casino-chess-player > div > span,
+#root .casino-shell .casino-chess-opponent > div > small,
+#root .casino-shell .casino-chess-player > div > small,
+#root .casino-shell .casino-chess-opponent > b,
+#root .casino-shell .casino-chess-player > b,
+#root .casino-shell .casino-chess-start p {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+#root .casino-shell .casino-chess-opponent > div > strong,
+#root .casino-shell .casino-chess-player > div > strong,
+#root .casino-shell .casino-chess-start h3 {
+  font-size: 14px;
+}
+
+#root .casino-shell .casino-chess-start button {
+  font-size: 13px;
+}
+
+/* Other playable overlays use the same floor: readable labels, body copy,
+ * and actions without enlarging their board pieces or decorative marks. */
+#root .mini-game-panel .mini-game-kicker,
+#root .mini-game-panel .mini-game-head-actions > strong,
+#root .mini-game-panel .mini-game-station-art small,
+#root .mini-game-panel .mini-game-station-meta b,
+#root .mini-game-panel .mini-game-station-meta span,
+#root .mini-game-panel .mini-game-table-label,
+#root .mini-game-panel .mini-game-live-status span,
+#root .mini-game-panel .mini-game-actions span,
+#root .mini-game-panel .mini-game-scoreboard > span,
+#root .mini-game-panel .mini-game-scoreboard b,
+#root .mini-game-panel .mini-game-scoreboard small,
+#root .mini-game-panel .mini-game-spectator-tools span,
+#root .mini-game-panel .mini-game-event,
+#root .mini-game-panel .mini-game-reward-receipt {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+#root .mini-game-panel h2,
+#root .mini-game-panel .mini-game-station-lobby h3 {
+  font-size: 24px;
+}
+
+#root .mini-game-panel .mini-game-station-lobby p,
+#root .mini-game-panel .mini-game-hint,
+#root .mini-game-panel .mini-game-role,
+#root .mini-game-panel .mini-game-result,
+#root .mini-game-panel .mini-game-live-status strong,
+#root .mini-game-panel .mini-game-scoreboard strong {
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+#root .mini-game-panel .mini-game-start-button,
+#root .mini-game-panel .mini-game-actions button,
+#root .mini-game-panel .mini-game-spectator-tools button {
+  font-size: 12px;
+}
+
+#root .rps-panel .rps-kicker,
+#root .rps-panel .rps-panel-heading p,
+#root .rps-panel .rps-game-choice small,
+#root .rps-panel .rps-balance-line span,
+#root .rps-panel .rps-wager-button small,
+#root .rps-panel .rps-action-row > span,
+#root .rps-panel .rps-pot span,
+#root .rps-panel .rps-pot small,
+#root .rps-panel .rps-incoming-copy p,
+#root .rps-panel .rps-waiting p,
+#root .rps-panel .rps-ready-status,
+#root .rps-panel .rps-move-button small,
+#root .rps-panel .rps-safe-note,
+#root .rps-panel .rps-result-badge,
+#root .rps-panel .rps-revealed-moves small,
+#root .rps-panel .rps-revealed-moves b,
+#root .rps-panel .rps-revealed-moves > i,
+#root .rps-panel .rps-payout,
+#root .rps-panel .rps-error {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+#root .rps-panel .rps-panel-heading h2 {
+  font-size: 25px;
+}
+
+#root .rps-panel .rps-game-choice strong,
+#root .rps-panel .rps-incoming-copy strong,
+#root .rps-panel .rps-waiting strong,
+#root .rps-panel .rps-result-card > strong {
+  font-size: 13px;
+}
+
+#root .rps-panel .rps-balance-line strong,
+#root .rps-panel .rps-pot strong {
+  font-size: 16px;
+}
+
+#root .rps-panel .rps-wager-button,
+#root .rps-panel .rps-action-row .rps-primary,
+#root .rps-panel .rps-action-row .rps-secondary,
+#root .rps-panel .rps-turn-banner,
+#root .rps-panel .rps-move-button span {
+  font-size: 12px;
+}
+
+#root .tag-game-panel .tag-game-kicker,
+#root .tag-game-panel-head > strong,
+#root .tag-game-panel .tag-game-countdown span,
+#root .tag-game-panel .tag-game-live-status span,
+#root .tag-game-panel .tag-game-attendance > span,
+#root .tag-game-panel .tag-game-attendance b,
+#root .tag-game-panel .tag-game-player-callout,
+#root .tag-game-panel .tag-game-flash {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+#root .tag-game-panel h2 {
+  font-size: 20px;
+}
+
+#root .tag-game-panel .tag-game-countdown strong {
+  font-size: 24px;
+}
+
+#root .tag-game-panel .tag-game-live-status strong,
+#root .tag-game-panel .tag-game-result {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Larger labels need room to wrap on narrow screens instead of being clipped. */
+@media (max-width: 780px) {
+  #root .casino-shell .tien-len-hand-label {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  #root .casino-shell .tien-len-hand-label small {
+    margin-left: auto;
+  }
+
+  #root .casino-shell .tien-len-notice {
+    height: auto;
+    min-height: 36px;
+    overflow: visible;
+  }
+
+  #root .casino-shell .tien-len-notice-copy {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  #root .casino-shell .pvp-table-card-bottom > span {
+    max-width: 48%;
+  }
+}
+
+@media (max-width: 420px) {
+  #root .casino-shell .tien-len-game-head h3 {
+    font-size: 18px;
+  }
+
+  #root .casino-shell .tien-len-table-brand span {
+    font-size: 20px;
+  }
+
+  #root .mini-game-panel .mini-game-station-lobby h3,
+  #root .mini-game-panel h2 {
+    font-size: 20px;
+  }
+}
+
+/* Direct text nodes and secondary overlays that do not inherit from a
+ * paragraph/small element still need the same readable floor. */
+#root .casino-shell .casino-guide header > span,
+#root .casino-shell .casino-guide > strong,
+#root .casino-shell .casino-guide li,
+#root .casino-shell .casino-guide li b,
+#root .casino-shell .casino-guide p,
+#root .casino-shell .casino-guide footer span,
+#root .casino-shell .casino-guide footer button,
+#root .casino-shell .casino-guide-reopen,
+#root .casino-shell .casino-history > div > i,
+#root .casino-shell .casino-live-crowd > header span,
+#root .casino-shell .casino-live-crowd > header strong,
+#root .casino-shell .casino-live-crowd article > i,
+#root .casino-shell .casino-live-crowd article b,
+#root .casino-shell .casino-live-crowd article > strong,
+#root .casino-shell .casino-live-crowd article > em,
+#root .casino-shell .casino-live-crowd article > strong small,
+#root .casino-shell .casino-live-crowd article div small,
+#root .casino-shell .casino-live-crowd > div > p,
+#root .casino-shell .casino-live-chip-flight span,
+#root .casino-shell .casino-duel-layout > section span,
+#root .casino-shell .blackjack-spot .casino-seat-empty,
+#root .casino-shell .tien-len-seat b,
+#root .casino-shell .texas-lobby-seat > span,
+#root .casino-shell .texas-lobby-seat b,
+#root .casino-shell .texas-lobby-seat small,
+#root .casino-shell .texas-seat-role-marker,
+#root .casino-shell .texas-action-card strong,
+#root .casino-shell .texas-action-card span,
+#root .casino-shell .texas-hand-result span,
+#root .casino-shell .texas-hand-result strong,
+#root .casino-shell .texas-hand-result b,
+#root .casino-shell .texas-pot-payout span,
+#root .casino-shell .texas-chip-flight strong,
+#root .casino-shell .texas-chip-flight span,
+#root .casino-shell .texas-turn-banner span,
+#root .casino-shell .texas-turn-banner strong,
+#root .casino-shell .texas-turn-banner small,
+#root .casino-shell .texas-turn-banner > b i,
+#root .casino-shell .casino-chess-board button small,
+#root .casino-shell .casino-chess-board button em {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+#root .casino-shell .casino-guide > strong,
+#root .casino-shell .casino-live-crowd article b,
+#root .casino-shell .casino-live-crowd article > strong,
+#root .casino-shell .texas-lobby-seat b,
+#root .casino-shell .texas-action-card strong,
+#root .casino-shell .texas-hand-result strong,
+#root .casino-shell .texas-hand-result b {
+  font-size: 11px;
+}
+
+#root .casino-shell .casino-live-chip-flight strong,
+#root .casino-shell .texas-lobby-head h3,
+#root .casino-shell .texas-lobby-head p,
+#root .casino-shell .texas-lobby-actions,
+#root .casino-shell .texas-result-payout span,
+#root .casino-shell .texas-result-payout strong {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+#root .mini-game-panel .mini-game-station-wait,
+#root .mini-game-panel .mini-game-countdown span,
+#root .mini-game-panel .mini-game-felt > strong {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Casino result reveal: the winning betting spots remain the visual anchor
+ * after settlement, while losing spots recede without disappearing. */
+#root .casino-shell .casino-bet-area.is-result-winner {
+  z-index: 5;
+  border-color: #fff0a6 !important;
+  color: #fff8dc;
+  background: linear-gradient(145deg, rgba(255, 211, 94, .38), rgba(31, 75, 49, .9)) !important;
+  box-shadow: 0 0 0 2px rgba(255, 231, 132, .8), 0 0 14px rgba(255, 209, 85, .58), inset 0 0 24px rgba(255, 236, 146, .18) !important;
+  transform: translateY(-3px) scale(1.025);
+  animation: casino-winning-bet-pulse 1.05s ease-in-out infinite;
+}
+
+#root .casino-shell .casino-bet-area.is-result-winner::before {
+  border-color: rgba(255, 242, 177, .95);
+  box-shadow: inset 0 2px 0 #fff4b7, inset 0 0 26px rgba(255, 226, 108, .24);
+  opacity: 1;
+}
+
+#root .casino-shell .casino-bet-area.is-result-winner::after {
+  position: absolute;
+  z-index: 6;
+  top: -12px;
+  left: 50%;
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 242, 177, .8);
+  border-radius: 999px;
+  color: #30240e;
+  background: linear-gradient(180deg, #fff1a8, #e9b84f);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .38), 0 0 12px rgba(255, 214, 93, .55);
+  content: '★ THẮNG';
+  font: 700 10px 'DM Mono', monospace;
+  letter-spacing: .4px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+#root .casino-shell .casino-bet-area.is-result-push {
+  z-index: 4;
+  border-color: #bce7e8 !important;
+  color: #efffff;
+  background: linear-gradient(145deg, rgba(99, 192, 190, .28), rgba(34, 55, 59, .9)) !important;
+  box-shadow: 0 0 0 1px rgba(176, 241, 232, .7), 0 0 15px rgba(98, 212, 204, .35), inset 0 0 20px rgba(133, 238, 223, .12) !important;
+  transform: translateY(-1px);
+}
+
+#root .casino-shell .casino-bet-area.is-result-loser {
+  border-color: rgba(255, 255, 255, .08) !important;
+  filter: saturate(.42);
+  opacity: .4;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, .18) !important;
+}
+
+#root .casino-shell .casino-bet-area.is-result-loser.has-wager {
+  opacity: .62;
+}
+
+#root .casino-shell .casino-bet-result-label {
+  position: absolute;
+  z-index: 5;
+  bottom: 6px;
+  left: 7px;
+  padding: 3px 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: 700 9px 'DM Mono', monospace;
+  font-style: normal;
+  letter-spacing: .35px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+#root .casino-shell .casino-bet-result-label.is-winner {
+  color: #fff2a8;
+  background: rgba(74, 53, 14, .78);
+}
+
+#root .casino-shell .casino-bet-result-label.is-push {
+  color: #c8f6ee;
+  background: rgba(25, 66, 68, .8);
+}
+
+#root .casino-shell .casino-bet-result-label.is-loser {
+  color: #b7c1bb;
+  background: rgba(17, 24, 25, .76);
+}
+
+#root .casino-shell .casino-baccarat-hand.is-result-winner {
+  border-color: #fff0a6;
+  box-shadow: inset 0 0 45px rgba(255, 224, 104, .2), 0 0 0 2px rgba(255, 233, 135, .58), 0 0 30px rgba(255, 205, 74, .36);
+  animation: casino-winning-hand-pulse 1.05s ease-in-out infinite;
+}
+
+#root .casino-shell .casino-baccarat-hand.is-result-push {
+  border-color: rgba(178, 238, 231, .78);
+  box-shadow: inset 0 0 30px rgba(100, 215, 205, .14), 0 0 18px rgba(100, 215, 205, .22);
+}
+
+#root .casino-shell .casino-baccarat-hand.is-result-loser {
+  opacity: .48;
+  filter: saturate(.5);
+}
+
+#root .casino-shell .blackjack-spot.is-result-winner {
+  border-color: #fff0a6;
+  background: linear-gradient(165deg, rgba(92, 75, 29, .85), rgba(12, 59, 41, .86));
+  box-shadow: 0 0 0 2px rgba(255, 232, 126, .55), 0 0 28px rgba(255, 206, 82, .34), inset 0 0 24px rgba(255, 225, 119, .12);
+  animation: casino-winning-spot-pulse 1.08s ease-in-out infinite;
+}
+
+#root .casino-shell .blackjack-spot.is-result-push {
+  border-color: rgba(176, 235, 229, .76);
+  background: linear-gradient(165deg, rgba(34, 75, 72, .8), rgba(10, 41, 40, .85));
+  box-shadow: 0 0 0 1px rgba(170, 234, 226, .5), 0 0 20px rgba(95, 210, 201, .24);
+}
+
+#root .casino-shell .blackjack-spot.is-result-loser {
+  border-color: rgba(255, 255, 255, .07);
+  filter: saturate(.42);
+  opacity: .56;
+}
+
+#root .casino-shell .casino-result-badge {
+  position: absolute;
+  z-index: 8;
+  top: 4px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: 700 9px 'DM Mono', monospace;
+  line-height: 1;
+  pointer-events: none;
+}
+
+#root .casino-shell .casino-result-badge span {
+  font-size: 12px;
+  line-height: 1;
+}
+
+#root .casino-shell .casino-result-badge.is-winner {
+  color: #fff1a4;
+  background: rgba(65, 46, 12, .9);
+  box-shadow: 0 0 12px rgba(255, 211, 84, .35);
+}
+
+#root .casino-shell .casino-result-badge.is-push {
+  color: #c9f8ee;
+  background: rgba(25, 66, 68, .9);
+}
+
+#root .casino-shell .casino-result-badge.is-loser {
+  color: #bbc5bd;
+  background: rgba(17, 24, 25, .88);
+}
+
+#root .casino-shell .casino-duel-layout > section.is-result-winner {
+  border-color: #fff0a6;
+  box-shadow: 0 0 0 2px rgba(255, 231, 132, .55), 0 0 28px rgba(255, 211, 90, .35), inset 0 0 26px rgba(255, 226, 111, .14);
+  animation: casino-winning-spot-pulse 1.05s ease-in-out infinite;
+}
+
+#root .casino-shell .casino-duel-layout > section.is-result-push {
+  border-color: rgba(180, 238, 231, .78);
+  box-shadow: 0 0 0 1px rgba(180, 238, 231, .46), 0 0 18px rgba(104, 215, 204, .27), inset 0 0 22px rgba(104, 215, 204, .12);
+}
+
+#root .casino-shell .casino-duel-layout > section.is-result-loser {
+  filter: saturate(.42);
+  opacity: .52;
+}
+
+#root .casino-shell .casino-lucky-layout .casino-reel-machine.is-result-winner {
+  border-color: #fff0a6;
+  box-shadow: 0 0 0 2px rgba(255, 231, 132, .62), 0 0 34px rgba(255, 197, 77, .44), inset 0 0 28px rgba(255, 241, 153, .2);
+  animation: casino-winning-spot-pulse 1.05s ease-in-out infinite;
+}
+
+#root .casino-shell .casino-lucky-layout .casino-reel-machine.is-result-push {
+  border-color: rgba(180, 238, 231, .8);
+  box-shadow: 0 0 0 1px rgba(180, 238, 231, .52), 0 0 24px rgba(104, 215, 204, .28);
+}
+
+#root .casino-shell .casino-lucky-layout .casino-reel-machine.is-result-loser {
+  filter: saturate(.56);
+}
+
+#root .casino-shell .texas-board.is-result {
+  border-color: #f7db75;
+  box-shadow: inset 0 0 0 3px rgba(255, 238, 153, .42), inset 0 0 40px rgba(255, 220, 107, .14), 0 0 24px rgba(255, 211, 87, .23);
+}
+
+#root .casino-shell .texas-seat.is-result-winner {
+  border-color: #fff0a6;
+  background: linear-gradient(145deg, rgba(76, 65, 31, .9), rgba(18, 62, 45, .92));
+  box-shadow: 0 0 0 2px rgba(255, 228, 121, .62), 0 0 26px rgba(255, 208, 81, .32), inset 0 0 22px rgba(255, 221, 104, .12);
+  animation: casino-winning-spot-pulse 1.08s ease-in-out infinite;
+}
+
+#root .casino-shell .texas-seat.is-result-loser {
+  filter: saturate(.48);
+  opacity: .68;
+}
+
+#root .casino-shell .casino-chess-board.is-result-winner,
+#root .casino-shell .casino-chess-start.is-result-winner,
+#root .casino-shell .tien-len-complete.is-result-winner {
+  border-color: #fff0a6;
+  box-shadow: 0 0 0 2px rgba(255, 231, 132, .52), 0 0 30px rgba(255, 205, 79, .32), inset 0 0 24px rgba(255, 224, 117, .14);
+}
+
+#root .casino-shell .casino-chess-start.is-result-winner,
+#root .casino-shell .tien-len-complete.is-result-winner {
+  animation: casino-winning-spot-pulse 1.08s ease-in-out infinite;
+}
+
+#root .casino-shell .casino-chess-board.is-result-loser,
+#root .casino-shell .casino-chess-start.is-result-loser,
+#root .casino-shell .tien-len-complete.is-result-loser {
+  border-color: rgba(255, 130, 119, .48);
+  box-shadow: 0 0 0 1px rgba(255, 130, 119, .24), 0 0 22px rgba(213, 78, 79, .18);
+}
+
+/* A single result VFX layer sits above the felt but below the reward toast.
+ * It is CSS-only so it works without an asset download or a new render path. */
+#root .casino-shell .casino-result-vfx {
+  --result-main: #ffe58f;
+  --result-secondary: #9ef2bc;
+  position: absolute;
+  z-index: 18;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+#root .casino-shell .casino-result-vfx.is-push {
+  --result-main: #bcefe9;
+  --result-secondary: #79d5d3;
+}
+
+#root .casino-shell .casino-result-vfx.is-loss {
+  --result-main: #ff938a;
+  --result-secondary: #e26c78;
+}
+
+#root .casino-shell .casino-result-flash,
+#root .casino-shell .casino-result-rays,
+#root .casino-shell .casino-result-ring,
+#root .casino-shell .casino-result-core,
+#root .casino-shell .casino-result-particles,
+#root .casino-shell .casino-result-coins {
+  position: absolute;
+  pointer-events: none;
+}
+
+#root .casino-shell .casino-result-flash {
+  inset: 0;
+  background: radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--result-main) 20%, transparent), transparent 32%), linear-gradient(90deg, transparent, color-mix(in srgb, var(--result-main) 7%, transparent), transparent);
+  opacity: 0;
+  animation: casino-result-flash .72s ease-out both;
+}
+
+#root .casino-shell .casino-result-rays {
+  top: 48%;
+  left: 50%;
+  width: min(760px, 92vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 4deg, color-mix(in srgb, var(--result-main) 28%, transparent) 0 4deg, transparent 4deg 15deg);
+  opacity: 0;
+  mask-image: radial-gradient(circle, #000 0 18%, transparent 67%);
+  transform: translate(-50%, -50%) scale(.42) rotate(-7deg);
+  animation: casino-result-rays 1.45s cubic-bezier(.2, .78, .2, 1) both;
+}
+
+#root .casino-shell .casino-result-ring {
+  top: 48%;
+  left: 50%;
+  width: 96px;
+  height: 96px;
+  border: 2px solid color-mix(in srgb, var(--result-main) 86%, white 14%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--result-main) 12%, transparent), 0 0 32px color-mix(in srgb, var(--result-main) 65%, transparent);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.35);
+  animation: casino-result-ring 1.28s cubic-bezier(.18, .8, .2, 1) both;
+}
+
+#root .casino-shell .casino-result-core {
+  top: 48%;
+  left: 50%;
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border: 3px solid color-mix(in srgb, var(--result-main) 86%, white 14%);
+  border-radius: 50%;
+  color: var(--result-main);
+  background: radial-gradient(circle, rgba(56, 46, 20, .9), rgba(21, 25, 25, .9) 68%);
+  box-shadow: 0 0 0 3px rgba(14, 21, 22, .66), 0 0 34px color-mix(in srgb, var(--result-main) 76%, transparent), inset 0 0 18px color-mix(in srgb, var(--result-main) 19%, transparent);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.3) rotate(-18deg);
+  animation: casino-result-core .75s cubic-bezier(.2, .9, .22, 1) .08s both;
+}
+
+#root .casino-shell .casino-result-core span {
+  color: inherit;
+  font-size: 34px;
+  line-height: 1;
+  text-shadow: 0 0 12px currentColor;
+}
+
+#root .casino-shell .casino-result-vfx.is-loss .casino-result-core {
+  border-radius: 12px;
+  animation: casino-result-loss-core .7s ease-out .08s both;
+}
+
+#root .casino-shell .casino-result-particles {
+  inset: 0;
+}
+
+#root .casino-shell .casino-result-particles i {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--result-main);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--result-main) 72%, transparent);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.3);
+  animation: casino-result-particle 1.25s cubic-bezier(.18, .77, .2, 1) var(--result-particle-delay) both;
+}
+
+#root .casino-shell .casino-result-particles i:nth-child(3n) {
+  width: 5px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--result-secondary);
+}
+
+#root .casino-shell .casino-result-particles i:nth-child(4n) {
+  border-radius: 50%;
+}
+
+#root .casino-shell .casino-result-coins {
+  inset: 0;
+}
+
+#root .casino-shell .casino-result-coins i {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  display: block;
+  color: #ffe48d;
+  font: 16px Georgia, serif;
+  font-style: normal;
+  opacity: 0;
+  text-shadow: 0 0 9px rgba(255, 213, 82, .86);
+  transform: translate(-50%, -50%) scale(.3);
+  animation: casino-result-coin 1.5s cubic-bezier(.2, .78, .2, 1) var(--result-coin-delay) both;
+}
+
+/* The large personal payout toast carries the amount first, then the reason,
+ * so the reward is scannable even while the VFX is playing. */
+#root .casino-shell .casino-reward-toast {
+  top: 82px;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  width: min(650px, calc(100% - 28px));
+  min-height: 88px;
+  box-sizing: border-box;
+  padding: 12px 16px 12px 12px;
+  border-width: 2px;
+  border-radius: 12px;
+  background: linear-gradient(120deg, rgba(20, 58, 39, .98), rgba(20, 31, 34, .98) 68%, rgba(70, 54, 23, .98));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .58), 0 0 0 1px rgba(255, 231, 132, .16), 0 0 38px rgba(255, 207, 84, .26), inset 0 0 24px rgba(255, 232, 138, .09);
+  animation: casino-reward-toast-in .42s cubic-bezier(.18, .86, .2, 1) both;
+}
+
+#root .casino-shell .casino-reward-toast.is-push {
+  border-color: rgba(180, 238, 231, .82);
+  background: linear-gradient(120deg, rgba(25, 69, 67, .98), rgba(18, 31, 35, .98));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .55), 0 0 28px rgba(95, 211, 202, .25), inset 0 0 22px rgba(128, 234, 220, .08);
+}
+
+#root .casino-shell .casino-reward-toast.is-loss {
+  border-color: rgba(255, 132, 123, .65);
+  background: linear-gradient(120deg, rgba(73, 31, 35, .98), rgba(25, 29, 34, .98));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .55), 0 0 24px rgba(224, 84, 94, .19), inset 0 0 22px rgba(255, 117, 111, .07);
+}
+
+#root .casino-shell .casino-reward-emblem {
+  position: relative;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 2px solid #fff0a6;
+  border-radius: 50%;
+  color: #3f3010;
+  background: radial-gradient(circle at 34% 26%, #fff8c7, #f5ca5d 62%, #b27927);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .25), 0 0 22px rgba(255, 213, 84, .54);
+  animation: casino-reward-emblem 1.8s ease-in-out infinite;
+}
+
+#root .casino-shell .casino-reward-emblem::before,
+#root .casino-shell .casino-reward-emblem::after {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff0a6;
+  border-radius: 2px;
+  content: '';
+  transform: rotate(45deg);
+}
+
+#root .casino-shell .casino-reward-emblem::before { top: -6px; left: 7px; }
+#root .casino-shell .casino-reward-emblem::after { right: 7px; bottom: -6px; }
+#root .casino-shell .casino-reward-emblem > span { display: block; width: auto; height: auto; place-items: initial; border-radius: 0; color: inherit; background: transparent; font: 28px Georgia, serif; line-height: 1; text-shadow: 0 2px rgba(255, 255, 255, .24); }
+#root .casino-shell .casino-reward-emblem i { position: absolute; inset: 7px; border: 1px dashed rgba(85, 54, 11, .45); border-radius: 50%; }
+
+#root .casino-shell .casino-reward-toast.is-push .casino-reward-emblem {
+  border-color: #bcefe9;
+  color: #183d3e;
+  background: radial-gradient(circle at 34% 26%, #eafffb, #83d9d2 62%, #3c888a);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .22), 0 0 20px rgba(115, 224, 212, .42);
+}
+
+#root .casino-shell .casino-reward-toast.is-loss .casino-reward-emblem {
+  border-color: #ff9b91;
+  color: #4b1e26;
+  background: radial-gradient(circle at 34% 26%, #ffd0c9, #e87977 62%, #8b3a47);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .18), 0 0 18px rgba(228, 94, 101, .3);
+  animation: none;
+}
+
+#root .casino-shell .casino-reward-copy {
+  min-width: 0;
+}
+
+#root .casino-shell .casino-reward-copy small,
+#root .casino-shell .casino-reward-copy strong,
+#root .casino-shell .casino-reward-copy p {
+  display: block;
+  margin: 0;
+}
+
+#root .casino-shell .casino-reward-copy small {
+  color: #d8c984;
+  font: 700 10px 'DM Mono', monospace;
+  letter-spacing: 1px;
+}
+
+#root .casino-shell .casino-reward-copy strong {
+  margin-top: 3px;
+  color: #fff8d7;
+  font: 700 21px 'DM Mono', monospace;
+  letter-spacing: .4px;
+  line-height: 1.1;
+}
+
+#root .casino-shell .casino-reward-copy p {
+  overflow: hidden;
+  margin-top: 5px;
+  color: #b9c9bd;
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#root .casino-shell .casino-reward-value {
+  display: grid;
+  justify-items: end;
+  min-width: 116px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 231, 132, .25);
+  text-align: right;
+}
+
+#root .casino-shell .casino-reward-value b,
+#root .casino-shell .casino-reward-value span,
+#root .casino-shell .casino-reward-value small {
+  display: block;
+}
+
+#root .casino-shell .casino-reward-value b {
+  color: #e8ffad;
+  font: 700 27px 'DM Mono', monospace;
+  letter-spacing: -.8px;
+  line-height: 1;
+  text-shadow: 0 0 13px rgba(201, 245, 111, .46);
+}
+
+#root .casino-shell .casino-reward-value span {
+  width: auto;
+  height: auto;
+  margin-top: 3px;
+  border-radius: 0;
+  color: #b2d28d;
+  background: transparent;
+  font: 700 9px 'DM Mono', monospace;
+  letter-spacing: 1px;
+  place-items: initial;
+}
+
+#root .casino-shell .casino-reward-value small {
+  margin-top: 6px;
+  color: #ffe3a0;
+  font: 700 10px 'DM Mono', monospace;
+  white-space: nowrap;
+}
+
+#root .casino-shell .casino-reward-toast.is-push .casino-reward-copy small,
+#root .casino-shell .casino-reward-toast.is-push .casino-reward-value small { color: #a9e5dc; }
+#root .casino-shell .casino-reward-toast.is-loss .casino-reward-copy small,
+#root .casino-shell .casino-reward-toast.is-loss .casino-reward-value small { color: #ffaaa1; }
+#root .casino-shell .casino-reward-toast.is-loss .casino-reward-value b { color: #ffaaa1; text-shadow: 0 0 13px rgba(255, 111, 104, .34); }
+
+@keyframes casino-winning-bet-pulse {
+  0%, 100% { filter: brightness(1); transform: translateY(-2px) scale(1.015); }
+  50% { filter: brightness(1.22); transform: translateY(-4px) scale(1.04); }
+}
+
+@keyframes casino-winning-hand-pulse {
+  0%, 100% { filter: brightness(1); transform: translateY(0); }
+  50% { filter: brightness(1.18); transform: translateY(-2px); }
+}
+
+@keyframes casino-winning-spot-pulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.16); }
+}
+
+@keyframes casino-result-flash {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes casino-result-rays {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.42) rotate(-7deg); }
+  22% { opacity: .86; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.18) rotate(20deg); }
+}
+
+@keyframes casino-result-ring {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.35); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(4.4); }
+}
+
+@keyframes casino-result-core {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(-18deg); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1.16) rotate(7deg); }
+  65% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.08) rotate(0); }
+}
+
+@keyframes casino-result-loss-core {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.6) rotate(-8deg); }
+  25%, 75% { opacity: 1; transform: translate(calc(-50% - 4px), -50%) scale(1) rotate(0); }
+  45%, 90% { opacity: 1; transform: translate(calc(-50% + 4px), -50%) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.92); }
+}
+
+@keyframes casino-result-particle {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--result-particle-x)), calc(-50% + var(--result-particle-y))) scale(1) rotate(var(--result-particle-rotate)); }
+}
+
+@keyframes casino-result-coin {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0); }
+  16% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--result-coin-x)), calc(-50% + var(--result-coin-y))) scale(1.15) rotate(var(--result-coin-rotate)); }
+}
+
+@keyframes casino-reward-toast-in {
+  0% { opacity: 0; transform: translate(-50%, -20px) scale(.94); }
+  72% { opacity: 1; transform: translate(-50%, 2px) scale(1.015); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes casino-reward-emblem {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(4deg) scale(1.06); }
+}
+
+@media (max-width: 780px) {
+  #root .casino-shell .casino-result-core { top: 44%; width: 52px; height: 52px; }
+  #root .casino-shell .casino-result-core span { font-size: 28px; }
+  #root .casino-shell .casino-result-rays { width: min(620px, 120vw); }
+  #root .casino-shell .casino-result-particles,
+  #root .casino-shell .casino-result-coins { inset: 0; }
+  #root .casino-shell .casino-reward-toast { top: 68px; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 9px; min-height: 76px; padding: 9px 10px 9px 8px; }
+  #root .casino-shell .casino-reward-emblem { width: 44px; height: 44px; }
+  #root .casino-shell .casino-reward-emblem span { font-size: 22px; }
+  #root .casino-shell .casino-reward-emblem i { inset: 5px; }
+  #root .casino-shell .casino-reward-copy small { font-size: 8px; }
+  #root .casino-shell .casino-reward-copy strong { font-size: 16px; }
+  #root .casino-shell .casino-reward-copy p { margin-top: 3px; font-size: 10px; }
+  #root .casino-shell .casino-reward-value { min-width: 84px; padding-left: 8px; }
+  #root .casino-shell .casino-reward-value b { font-size: 20px; }
+  #root .casino-shell .casino-reward-value span { font-size: 8px; }
+  #root .casino-shell .casino-reward-value small { margin-top: 4px; font-size: 8px; }
+  #root .casino-shell .casino-bet-area.is-result-winner::after { top: -10px; padding: 2px 5px; font-size: 8px; }
+  #root .casino-shell .casino-bet-result-label { bottom: 4px; left: 4px; padding: 2px 4px; font-size: 8px; }
+}
+
+@media (max-width: 460px) {
+  #root .casino-shell .casino-reward-toast { grid-template-columns: 40px minmax(0, 1fr); }
+  #root .casino-shell .casino-reward-emblem { width: 38px; height: 38px; }
+  #root .casino-shell .casino-reward-emblem span { font-size: 18px; }
+  #root .casino-shell .casino-reward-emblem::before,
+  #root .casino-shell .casino-reward-emblem::after { display: none; }
+  #root .casino-shell .casino-reward-copy strong { font-size: 14px; }
+  #root .casino-shell .casino-reward-copy p { white-space: normal; }
+  #root .casino-shell .casino-reward-value { grid-column: 2; justify-items: start; padding-top: 5px; padding-left: 0; border-top: 1px solid rgba(255, 231, 132, .2); border-left: 0; text-align: left; }
+  #root .casino-shell .casino-reward-value b { font-size: 19px; }
+  #root .casino-shell .casino-reward-value span,
+  #root .casino-shell .casino-reward-value small { display: inline-block; margin-top: 2px; margin-right: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root .casino-shell .casino-result-vfx,
+  #root .casino-shell .casino-result-vfx *,
+  #root .casino-shell .casino-reward-toast,
+  #root .casino-shell .casino-reward-emblem,
+  #root .casino-shell .casino-bet-area.is-result-winner,
+  #root .casino-shell .casino-baccarat-hand.is-result-winner,
+  #root .casino-shell .blackjack-spot.is-result-winner,
+  #root .casino-shell .casino-duel-layout > section.is-result-winner,
+  #root .casino-shell .casino-lucky-layout .casino-reel-machine.is-result-winner,
+  #root .casino-shell .texas-seat.is-result-winner,
+  #root .casino-shell .casino-chess-start.is-result-winner,
+  #root .casino-shell .tien-len-complete.is-result-winner {
+    animation: none !important;
+  }
+
+  #root .casino-shell .casino-result-vfx { opacity: .46; }
+  #root .casino-shell .casino-result-flash,
+  #root .casino-shell .casino-result-rays,
+  #root .casino-shell .casino-result-ring,
+  #root .casino-shell .casino-result-core,
+  #root .casino-shell .casino-result-particles,
+  #root .casino-shell .casino-result-coins { opacity: .62; transform: none; }
+
+  #root .casino-shell .casino-result-rays,
+  #root .casino-shell .casino-result-ring,
+  #root .casino-shell .casino-result-core { transform: translate(-50%, -50%); }
+
+  #root .casino-shell .casino-result-particles i,
+  #root .casino-shell .casino-result-coins i { transform: translate(-50%, -50%); }
+}
+
+/* RPS is a direct challenge rather than a casino table, but its settled state
+ * follows the same result language: make the winning move unmistakable and
+ * surface the wallet result without requiring the player to parse the card. */
+#root .rps-layer .rps-panel {
+  position: relative;
+  z-index: 2;
+}
+
+#root .rps-layer .rps-panel.is-result-win {
+  border-color: #fff0a6;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .5), 0 0 0 2px rgba(255, 231, 132, .42), 0 0 34px rgba(255, 205, 79, .28), inset 0 0 24px rgba(255, 224, 117, .1);
+}
+
+#root .rps-layer .rps-panel.is-result-push {
+  border-color: rgba(180, 238, 231, .82);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .5), 0 0 0 1px rgba(180, 238, 231, .4), 0 0 28px rgba(95, 211, 202, .22), inset 0 0 22px rgba(128, 234, 220, .08);
+}
+
+#root .rps-layer .rps-panel.is-result-loss {
+  border-color: rgba(255, 132, 123, .7);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 132, 123, .25), 0 0 25px rgba(224, 84, 94, .16), inset 0 0 22px rgba(255, 117, 111, .06);
+}
+
+#root .rps-layer .rps-result-card.is-win {
+  border-color: #fff0a6;
+  background: linear-gradient(145deg, rgba(76, 72, 30, .76), rgba(32, 81, 51, .48));
+  box-shadow: inset 0 0 24px rgba(255, 226, 111, .1), 0 0 24px rgba(255, 211, 84, .18);
+  animation: rps-result-card-pulse 1.1s ease-in-out infinite;
+}
+
+#root .rps-layer .rps-result-card.is-tie {
+  border-color: rgba(180, 238, 231, .82);
+  background: linear-gradient(145deg, rgba(30, 77, 74, .7), rgba(17, 42, 43, .64));
+  box-shadow: 0 0 20px rgba(95, 211, 202, .16);
+}
+
+#root .rps-layer .rps-result-card.is-loss {
+  border-color: rgba(255, 132, 123, .54);
+  background: linear-gradient(145deg, rgba(76, 31, 36, .56), rgba(20, 28, 34, .7));
+}
+
+#root .rps-layer .rps-revealed-moves > div {
+  position: relative;
+  min-height: 74px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, .12);
+  transition: .2s ease;
+}
+
+#root .rps-layer .rps-revealed-moves > div.is-winner {
+  border-color: #fff0a6;
+  background: linear-gradient(145deg, rgba(90, 75, 28, .9), rgba(31, 78, 49, .84));
+  box-shadow: 0 0 0 2px rgba(255, 231, 132, .44), 0 0 22px rgba(255, 205, 79, .28), inset 0 0 18px rgba(255, 224, 117, .12);
+  transform: translateY(-3px);
+  animation: rps-winning-move-pulse 1.05s ease-in-out infinite;
+}
+
+#root .rps-layer .rps-revealed-moves > div.is-push {
+  border-color: rgba(180, 238, 231, .78);
+  background: rgba(31, 76, 73, .75);
+  box-shadow: 0 0 0 1px rgba(180, 238, 231, .3), 0 0 16px rgba(95, 211, 202, .18);
+}
+
+#root .rps-layer .rps-revealed-moves > div.is-loser {
+  border-color: rgba(255, 255, 255, .08);
+  filter: saturate(.45);
+  opacity: .55;
+}
+
+#root .rps-layer .rps-revealed-moves > div em {
+  display: block;
+  margin-top: 5px;
+  color: #c3d3c7;
+  font: 700 9px 'DM Mono', monospace;
+  font-style: normal;
+  letter-spacing: .35px;
+}
+
+#root .rps-layer .rps-revealed-moves > div.is-winner em { color: #fff0a6; }
+#root .rps-layer .rps-revealed-moves > div.is-push em { color: #bcefe9; }
+#root .rps-layer .rps-revealed-moves > div.is-loser em { color: #ffaaa1; }
+
+/* RPS result VFX sits behind the result panel and never captures input. */
+#root .rps-layer .rps-result-vfx {
+  --rps-result-main: #ffe58f;
+  --rps-result-secondary: #9ef2bc;
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#root .rps-layer .rps-result-vfx.is-push {
+  --rps-result-main: #bcefe9;
+  --rps-result-secondary: #79d5d3;
+}
+
+#root .rps-layer .rps-result-vfx.is-loss {
+  --rps-result-main: #ff938a;
+  --rps-result-secondary: #e26c78;
+}
+
+#root .rps-layer .rps-result-flash,
+#root .rps-layer .rps-result-rays,
+#root .rps-layer .rps-result-ring,
+#root .rps-layer .rps-result-core,
+#root .rps-layer .rps-result-particles {
+  position: absolute;
+  pointer-events: none;
+}
+
+#root .rps-layer .rps-result-flash {
+  inset: 0;
+  background: radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--rps-result-main) 20%, transparent), transparent 32%), linear-gradient(90deg, transparent, color-mix(in srgb, var(--rps-result-main) 7%, transparent), transparent);
+  opacity: 0;
+  animation: rps-result-flash .72s ease-out both;
+}
+
+#root .rps-layer .rps-result-rays {
+  top: 48%;
+  left: 50%;
+  width: min(760px, 120vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 4deg, color-mix(in srgb, var(--rps-result-main) 28%, transparent) 0 4deg, transparent 4deg 15deg);
+  opacity: 0;
+  mask-image: radial-gradient(circle, #000 0 18%, transparent 67%);
+  transform: translate(-50%, -50%) scale(.42) rotate(-7deg);
+  animation: rps-result-rays 1.45s cubic-bezier(.2, .78, .2, 1) both;
+}
+
+#root .rps-layer .rps-result-ring {
+  top: 48%;
+  left: 50%;
+  width: 96px;
+  height: 96px;
+  border: 2px solid color-mix(in srgb, var(--rps-result-main) 86%, white 14%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--rps-result-main) 12%, transparent), 0 0 32px color-mix(in srgb, var(--rps-result-main) 65%, transparent);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.35);
+  animation: rps-result-ring 1.28s cubic-bezier(.18, .8, .2, 1) both;
+}
+
+#root .rps-layer .rps-result-core {
+  top: 48%;
+  left: 50%;
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border: 3px solid color-mix(in srgb, var(--rps-result-main) 86%, white 14%);
+  border-radius: 50%;
+  color: var(--rps-result-main);
+  background: radial-gradient(circle, rgba(56, 46, 20, .9), rgba(21, 25, 25, .9) 68%);
+  box-shadow: 0 0 0 3px rgba(14, 21, 22, .66), 0 0 34px color-mix(in srgb, var(--rps-result-main) 76%, transparent), inset 0 0 18px color-mix(in srgb, var(--rps-result-main) 19%, transparent);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.3) rotate(-18deg);
+  animation: rps-result-core .75s cubic-bezier(.2, .9, .22, 1) .08s both;
+}
+
+#root .rps-layer .rps-result-vfx.is-loss .rps-result-core {
+  border-radius: 12px;
+  animation: rps-result-loss-core .7s ease-out .08s both;
+}
+
+#root .rps-layer .rps-result-core span {
+  color: inherit;
+  font-size: 34px;
+  line-height: 1;
+  text-shadow: 0 0 12px currentColor;
+}
+
+#root .rps-layer .rps-result-particles { inset: 0; }
+
+#root .rps-layer .rps-result-particles i {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--rps-result-main);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--rps-result-main) 72%, transparent);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.3);
+  animation: rps-result-particle 1.25s cubic-bezier(.18, .77, .2, 1) var(--rps-particle-delay) both;
+}
+
+#root .rps-layer .rps-result-particles i:nth-child(3n) {
+  width: 5px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--rps-result-secondary);
+}
+
+#root .rps-layer .rps-result-particles i:nth-child(4n) { border-radius: 50%; }
+
+/* The RPS reward toast mirrors the casino payout receipt so both betting
+ * surfaces teach the same wallet language. */
+#root .rps-layer .rps-reward-toast {
+  position: absolute;
+  z-index: 20;
+  top: 28px;
+  left: 50%;
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 13px;
+  width: min(620px, calc(100% - 28px));
+  min-height: 88px;
+  box-sizing: border-box;
+  padding: 12px 16px 12px 12px;
+  border: 2px solid #fff0a6;
+  border-radius: 12px;
+  color: #f5fbf7;
+  background: linear-gradient(120deg, rgba(20, 58, 39, .98), rgba(20, 31, 34, .98) 68%, rgba(70, 54, 23, .98));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .58), 0 0 0 1px rgba(255, 231, 132, .16), 0 0 38px rgba(255, 207, 84, .26), inset 0 0 24px rgba(255, 232, 138, .09);
+  transform: translateX(-50%);
+  animation: rps-reward-toast-in .42s cubic-bezier(.18, .86, .2, 1) both;
+}
+
+#root .rps-layer .rps-reward-toast.is-push {
+  border-color: rgba(180, 238, 231, .82);
+  background: linear-gradient(120deg, rgba(25, 69, 67, .98), rgba(18, 31, 35, .98));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .55), 0 0 28px rgba(95, 211, 202, .25), inset 0 0 22px rgba(128, 234, 220, .08);
+}
+
+#root .rps-layer .rps-reward-toast.is-loss {
+  border-color: rgba(255, 132, 123, .65);
+  background: linear-gradient(120deg, rgba(73, 31, 35, .98), rgba(25, 29, 34, .98));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .55), 0 0 24px rgba(224, 84, 94, .19), inset 0 0 22px rgba(255, 117, 111, .07);
+}
+
+#root .rps-layer .rps-reward-emblem {
+  position: relative;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 2px solid #fff0a6;
+  border-radius: 50%;
+  color: #3f3010;
+  background: radial-gradient(circle at 34% 26%, #fff8c7, #f5ca5d 62%, #b27927);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .25), 0 0 22px rgba(255, 213, 84, .54);
+  animation: rps-reward-emblem 1.8s ease-in-out infinite;
+}
+
+#root .rps-layer .rps-reward-emblem::before,
+#root .rps-layer .rps-reward-emblem::after {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 2px solid #fff0a6;
+  border-radius: 2px;
+  content: '';
+  transform: rotate(45deg);
+}
+
+#root .rps-layer .rps-reward-emblem::before { top: -6px; left: 7px; }
+#root .rps-layer .rps-reward-emblem::after { right: 7px; bottom: -6px; }
+#root .rps-layer .rps-reward-emblem > span { display: block; width: auto; height: auto; border-radius: 0; color: inherit; background: transparent; font: 28px Georgia, serif; line-height: 1; text-shadow: 0 2px rgba(255, 255, 255, .24); }
+#root .rps-layer .rps-reward-emblem i { position: absolute; inset: 7px; border: 1px dashed rgba(85, 54, 11, .45); border-radius: 50%; }
+
+#root .rps-layer .rps-reward-toast.is-push .rps-reward-emblem {
+  border-color: #bcefe9;
+  color: #183d3e;
+  background: radial-gradient(circle at 34% 26%, #eafffb, #83d9d2 62%, #3c888a);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .22), 0 0 20px rgba(115, 224, 212, .42);
+}
+
+#root .rps-layer .rps-reward-toast.is-loss .rps-reward-emblem {
+  border-color: #ff9b91;
+  color: #4b1e26;
+  background: radial-gradient(circle at 34% 26%, #ffd0c9, #e87977 62%, #8b3a47);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .18), 0 0 18px rgba(228, 94, 101, .3);
+  animation: none;
+}
+
+#root .rps-layer .rps-reward-copy { min-width: 0; }
+#root .rps-layer .rps-reward-copy small,
+#root .rps-layer .rps-reward-copy strong,
+#root .rps-layer .rps-reward-copy p { display: block; margin: 0; }
+#root .rps-layer .rps-reward-copy small { color: #d8c984; font: 700 10px 'DM Mono', monospace; letter-spacing: 1px; }
+#root .rps-layer .rps-reward-copy strong { margin-top: 3px; color: #fff8d7; font: 700 21px 'DM Mono', monospace; letter-spacing: .4px; line-height: 1.1; }
+#root .rps-layer .rps-reward-copy p { overflow: hidden; margin-top: 5px; color: #b9c9bd; font-size: 11px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+
+#root .rps-layer .rps-reward-value {
+  display: grid;
+  justify-items: end;
+  min-width: 116px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 231, 132, .25);
+  text-align: right;
+}
+
+#root .rps-layer .rps-reward-value b,
+#root .rps-layer .rps-reward-value span,
+#root .rps-layer .rps-reward-value small { display: block; }
+#root .rps-layer .rps-reward-value b { color: #e8ffad; font: 700 27px 'DM Mono', monospace; letter-spacing: -.8px; line-height: 1; text-shadow: 0 0 13px rgba(201, 245, 111, .46); }
+#root .rps-layer .rps-reward-value span { margin-top: 3px; color: #b2d28d; font: 700 9px 'DM Mono', monospace; letter-spacing: 1px; }
+#root .rps-layer .rps-reward-value small { margin-top: 6px; color: #ffe3a0; font: 700 10px 'DM Mono', monospace; white-space: nowrap; }
+#root .rps-layer .rps-reward-toast.is-push .rps-reward-copy small,
+#root .rps-layer .rps-reward-toast.is-push .rps-reward-value small { color: #a9e5dc; }
+#root .rps-layer .rps-reward-toast.is-loss .rps-reward-copy small,
+#root .rps-layer .rps-reward-toast.is-loss .rps-reward-value small { color: #ffaaa1; }
+#root .rps-layer .rps-reward-toast.is-loss .rps-reward-value b { color: #ffaaa1; text-shadow: 0 0 13px rgba(255, 111, 104, .34); }
+
+@keyframes rps-result-card-pulse {
+  0%, 100% { box-shadow: inset 0 0 24px rgba(255, 226, 111, .1), 0 0 18px rgba(255, 211, 84, .14); }
+  50% { box-shadow: inset 0 0 28px rgba(255, 226, 111, .18), 0 0 28px rgba(255, 211, 84, .28); }
+}
+
+@keyframes rps-winning-move-pulse {
+  0%, 100% { filter: brightness(1); transform: translateY(-2px); }
+  50% { filter: brightness(1.18); transform: translateY(-4px); }
+}
+
+@keyframes rps-result-flash {
+  0% { opacity: 0; }
+  18% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes rps-result-rays {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.42) rotate(-7deg); }
+  22% { opacity: .86; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.18) rotate(20deg); }
+}
+
+@keyframes rps-result-ring {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.35); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(4.4); }
+}
+
+@keyframes rps-result-core {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(-18deg); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1.16) rotate(7deg); }
+  65% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.08) rotate(0); }
+}
+
+@keyframes rps-result-loss-core {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.6) rotate(-8deg); }
+  25%, 75% { opacity: 1; transform: translate(calc(-50% - 4px), -50%) scale(1) rotate(0); }
+  45%, 90% { opacity: 1; transform: translate(calc(-50% + 4px), -50%) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(.92); }
+}
+
+@keyframes rps-result-particle {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(.3) rotate(0); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--rps-particle-x)), calc(-50% + var(--rps-particle-y))) scale(1) rotate(var(--rps-particle-rotate)); }
+}
+
+@keyframes rps-reward-toast-in {
+  0% { opacity: 0; transform: translate(-50%, -20px) scale(.94); }
+  72% { opacity: 1; transform: translate(-50%, 2px) scale(1.015); }
+  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes rps-reward-emblem {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(4deg) scale(1.06); }
+}
+
+@media (max-width: 620px) {
+  #root .rps-layer .rps-result-core { top: 44%; width: 52px; height: 52px; }
+  #root .rps-layer .rps-result-core span { font-size: 28px; }
+  #root .rps-layer .rps-result-rays { width: min(620px, 150vw); }
+  #root .rps-layer .rps-reward-toast { top: 12px; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 9px; min-height: 76px; padding: 9px 10px 9px 8px; }
+  #root .rps-layer .rps-reward-emblem { width: 44px; height: 44px; }
+  #root .rps-layer .rps-reward-emblem > span { font-size: 22px; }
+  #root .rps-layer .rps-reward-emblem i { inset: 5px; }
+  #root .rps-layer .rps-reward-copy small { font-size: 8px; }
+  #root .rps-layer .rps-reward-copy strong { font-size: 16px; }
+  #root .rps-layer .rps-reward-copy p { margin-top: 3px; font-size: 10px; }
+  #root .rps-layer .rps-reward-value { min-width: 84px; padding-left: 8px; }
+  #root .rps-layer .rps-reward-value b { font-size: 20px; }
+  #root .rps-layer .rps-reward-value span { font-size: 8px; }
+  #root .rps-layer .rps-reward-value small { margin-top: 4px; font-size: 8px; }
+}
+
+@media (max-width: 460px) {
+  #root .rps-layer .rps-reward-toast { grid-template-columns: 40px minmax(0, 1fr); }
+  #root .rps-layer .rps-reward-emblem { width: 38px; height: 38px; }
+  #root .rps-layer .rps-reward-emblem > span { font-size: 18px; }
+  #root .rps-layer .rps-reward-emblem::before,
+  #root .rps-layer .rps-reward-emblem::after { display: none; }
+  #root .rps-layer .rps-reward-copy strong { font-size: 14px; }
+  #root .rps-layer .rps-reward-copy p { white-space: normal; }
+  #root .rps-layer .rps-reward-value { grid-column: 2; justify-items: start; padding-top: 5px; padding-left: 0; border-top: 1px solid rgba(255, 231, 132, .2); border-left: 0; text-align: left; }
+  #root .rps-layer .rps-reward-value b { font-size: 19px; }
+  #root .rps-layer .rps-reward-value span,
+  #root .rps-layer .rps-reward-value small { display: inline-block; margin-top: 2px; margin-right: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #root .rps-layer .rps-result-vfx,
+  #root .rps-layer .rps-result-vfx *,
+  #root .rps-layer .rps-reward-toast,
+  #root .rps-layer .rps-reward-emblem,
+  #root .rps-layer .rps-result-card.is-win,
+  #root .rps-layer .rps-revealed-moves > div.is-winner {
+    animation: none !important;
+  }
+
+  #root .rps-layer .rps-result-vfx { opacity: .46; }
+  #root .rps-layer .rps-result-flash,
+  #root .rps-layer .rps-result-rays,
+  #root .rps-layer .rps-result-ring,
+  #root .rps-layer .rps-result-core,
+  #root .rps-layer .rps-result-particles { opacity: .62; transform: none; }
+  #root .rps-layer .rps-result-rays,
+  #root .rps-layer .rps-result-ring,
+  #root .rps-layer .rps-result-core { transform: translate(-50%, -50%); }
+  #root .rps-layer .rps-result-particles i { transform: translate(-50%, -50%); }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Destination worlds: Fishing and Home                                      */
+/* -------------------------------------------------------------------------- */
+
+#root .world-panel {
+  position: fixed;
+  z-index: 18;
+  top: 104px;
+  right: 18px;
+  width: min(376px, calc(100vw - 36px));
+  max-height: calc(100vh - 126px);
+  overflow: auto;
+  padding: 17px;
+  border: 1px solid rgba(132, 184, 255, .34);
+  border-radius: 13px;
+  color: #e7f1ee;
+  background: linear-gradient(155deg, rgba(13, 30, 39, .97), rgba(19, 25, 43, .97));
+  box-shadow: 0 18px 42px rgba(2, 8, 14, .48), inset 0 0 0 1px rgba(255, 255, 255, .035);
+  backdrop-filter: blur(8px);
+  text-rendering: geometricPrecision;
+}
+
+#root .world-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+#root .world-panel-header h2 { margin: 6px 0 0; color: #f2f8f3; font-size: 21px; letter-spacing: -.6px; }
+#root .world-panel-kicker { color: #8bc9e2; font: 10px 'DM Mono', monospace; letter-spacing: .12em; }
+#root .world-panel-close { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(181, 220, 232, .17); border-radius: 7px; color: #a7bec5; background: rgba(255, 255, 255, .045); font-size: 23px; line-height: 1; }
+#root .world-panel-close:hover { border-color: rgba(200, 242, 103, .5); color: #c8f267; background: rgba(200, 242, 103, .08); }
+#root .world-panel-copy { margin: 12px 0 14px; color: #b5c9c6; font-size: 13px; line-height: 1.5; }
+#root .world-primary, #root .world-secondary { display: inline-flex; min-height: 39px; align-items: center; justify-content: center; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+#root .world-primary { color: #172419; background: #c8f267; }
+#root .world-primary:hover:not(:disabled) { background: #ddff8b; }
+#root .world-primary:disabled { cursor: not-allowed; opacity: .5; }
+#root .world-secondary { border: 1px solid rgba(181, 197, 231, .2); color: #c5d2df; background: rgba(255, 255, 255, .055); }
+#root .world-secondary:hover { border-color: rgba(132, 184, 255, .5); color: #e8f5ff; }
+#root .world-panel-error { margin-top: 11px; padding: 9px 10px; border: 1px solid rgba(255, 125, 125, .34); border-radius: 6px; color: #ffc7c7; background: rgba(255, 125, 125, .08); font-size: 11px; line-height: 1.45; }
+#root .world-panel footer { display: block; margin-top: 14px; color: #81959a; font: 10px 'DM Mono', monospace; line-height: 1.5; }
+
+#root .fishing-quickbar { position: fixed; z-index: 24; right: 108px; bottom: 22px; display: grid; width: min(560px, calc(100vw - 280px)); grid-template-columns: minmax(0, 1fr) 188px; gap: 9px 12px; align-items: center; padding: 10px 12px; border: 1px solid rgba(139, 201, 226, .36); border-radius: 11px; color: #e9f5f2; background: linear-gradient(140deg, rgba(10, 27, 36, .94), rgba(18, 25, 39, .94)); box-shadow: 0 13px 34px rgba(3, 9, 15, .46), inset 0 0 0 1px rgba(255, 255, 255, .035); backdrop-filter: blur(7px); pointer-events: auto; transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease; }
+#root .fishing-quickbar-signal { display: grid; min-width: 0; grid-template-columns: 18px minmax(0, 1fr); gap: 9px; align-items: center; }
+#root .fishing-quickbar-signal > div { min-width: 0; }
+#root .fishing-quickbar-signal small { display: block; overflow: hidden; color: #78a6b3; font: 8px 'DM Mono', monospace; letter-spacing: .08em; text-overflow: ellipsis; white-space: nowrap; }
+#root .fishing-quickbar-signal strong { display: block; overflow: hidden; margin-top: 2px; color: #edf8f4; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+#root .fishing-quickbar-signal em { display: block; overflow: hidden; margin-top: 2px; color: #9eb6b8; font: normal 9px 'DM Mono', monospace; text-overflow: ellipsis; white-space: nowrap; }
+#root .fishing-quickbar-bobber { position: relative; display: block; width: 14px; height: 14px; border: 3px solid #10233d; border-radius: 50%; background: linear-gradient(#ff6f78 0 48%, #f7f3d0 48% 100%); box-shadow: 0 0 0 3px rgba(132, 184, 255, .12), 0 0 12px rgba(132, 184, 255, .45); }
+#root .fishing-quickbar-bobber::before { position: absolute; bottom: 11px; left: 4px; width: 2px; height: 8px; border-radius: 2px; background: #dceef0; content: ''; }
+#root .fishing-action-button { min-height: 42px; padding: 0 12px; border: 1px solid rgba(200, 242, 103, .34); border-radius: 7px; color: #1b2c15; background: #c8f267; box-shadow: 0 6px 16px rgba(0, 0, 0, .22); font-size: 10px; font-weight: 900; letter-spacing: .02em; transition: transform 100ms ease, filter 100ms ease, background-color 100ms ease; }
+#root .fishing-action-button:not(:disabled):hover { filter: brightness(1.1); }
+#root .fishing-action-button:not(:disabled):active { transform: translateY(2px) scale(.985); }
+#root .fishing-action-button:disabled { cursor: not-allowed; opacity: .55; }
+#root .fishing-action-button.is-waiting, #root .fishing-action-button.is-nibble { border-color: rgba(139, 201, 226, .38); color: #c9e6ec; background: rgba(139, 201, 226, .13); }
+#root .fishing-action-button.is-bite { border-color: #f4ff93; color: #192408; background: #dfff55; box-shadow: 0 0 0 4px rgba(200, 242, 103, .18), 0 0 28px rgba(200, 242, 103, .62); animation: fishing-action-bite 170ms ease-in-out infinite alternate; }
+#root .fishing-quickbar.is-nibble .fishing-quickbar-bobber { animation: fishing-nibble 120ms ease-in-out 2; }
+#root .fishing-quickbar.is-bite { border-color: rgba(223, 255, 85, .9); box-shadow: 0 0 0 4px rgba(200, 242, 103, .13), 0 13px 34px rgba(3, 9, 15, .46), 0 0 30px rgba(200, 242, 103, .34); animation: fishing-quickbar-bite 160ms ease-in-out infinite alternate; }
+#root .fishing-quickbar.is-missed { border-color: rgba(255, 111, 120, .52); }
+#root .fishing-reaction-window { grid-column: 1 / -1; overflow: hidden; height: 5px; border-radius: 99px; background: rgba(255, 255, 255, .1); }
+#root .fishing-reaction-window i { display: block; width: 100%; height: 100%; transform-origin: left center; background: linear-gradient(90deg, #dfff55, #ffbd78 60%, #ff6f78); box-shadow: 0 0 12px rgba(223, 255, 85, .7); animation: fishing-reaction-shrink var(--fishing-window) linear forwards; }
+#root .fishing-quickbar-error { grid-column: 1 / -1; color: #ffb2b5; font: 9px 'DM Mono', monospace; text-align: center; }
+
+#root .fishing-loot-reveal { position: fixed; z-index: 42; top: 19%; left: 50%; display: grid; width: min(350px, calc(100vw - 40px)); grid-template-columns: 74px minmax(0, 1fr); gap: 13px; align-items: center; padding: 13px 16px; border: 1px solid rgba(139, 201, 226, .54); border-radius: 12px; transform: translateX(-50%); color: #edf8f4; background: rgba(11, 28, 38, .94); box-shadow: 0 18px 45px rgba(2, 8, 14, .58), 0 0 36px rgba(139, 201, 226, .2); pointer-events: none; isolation: isolate; overflow: hidden; animation: fishing-loot-enter 420ms cubic-bezier(.2, 1.35, .35, 1) both; }
+#root .fishing-loot-reveal img { position: relative; z-index: 2; width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .35)); animation: fishing-loot-float 780ms ease-in-out infinite alternate; }
+#root .fishing-loot-reveal > div { position: relative; z-index: 2; min-width: 0; }
+#root .fishing-loot-reveal small { display: block; color: #8bc9e2; font: 9px 'DM Mono', monospace; letter-spacing: .1em; }
+#root .fishing-loot-reveal strong { display: block; margin-top: 4px; color: #f4fbf7; font-size: 21px; text-transform: capitalize; }
+#root .fishing-loot-reveal em { display: block; margin-top: 4px; color: #abc1c0; font: normal 9px 'DM Mono', monospace; }
+#root .fishing-loot-reveal.is-uncommon { border-color: rgba(200, 242, 103, .72); box-shadow: 0 18px 45px rgba(2, 8, 14, .58), 0 0 42px rgba(200, 242, 103, .3); }
+#root .fishing-loot-reveal.is-uncommon small { color: #c8f267; }
+#root .fishing-loot-reveal.is-rare { border-color: rgba(218, 150, 255, .9); background: linear-gradient(130deg, rgba(28, 18, 48, .96), rgba(13, 36, 50, .96)); box-shadow: 0 18px 45px rgba(2, 8, 14, .58), 0 0 55px rgba(190, 106, 255, .48); animation: fishing-loot-enter 420ms cubic-bezier(.2, 1.35, .35, 1) both, fishing-rare-pulse 820ms ease-in-out infinite alternate; }
+#root .fishing-loot-reveal.is-rare small { color: #e8a7ff; text-shadow: 0 0 12px rgba(218, 150, 255, .8); }
+#root .fishing-loot-rays { position: absolute; z-index: 1; top: 50%; left: 40px; width: 180px; height: 180px; margin: -90px; opacity: .25; background: repeating-conic-gradient(from 0deg, transparent 0 12deg, #9ce8ff 12deg 18deg, transparent 18deg 30deg); animation: fishing-rays-spin 7s linear infinite; }
+#root .fishing-loot-reveal.is-uncommon .fishing-loot-rays { background: repeating-conic-gradient(from 0deg, transparent 0 12deg, #c8f267 12deg 18deg, transparent 18deg 30deg); }
+#root .fishing-loot-reveal.is-rare .fishing-loot-rays { opacity: .4; background: repeating-conic-gradient(from 0deg, transparent 0 10deg, #da96ff 10deg 17deg, transparent 17deg 27deg); }
+
+@keyframes fishing-action-bite { from { transform: scale(.985); } to { transform: scale(1.02); } }
+@keyframes fishing-quickbar-bite { from { transform: translateY(1px); } to { transform: translateY(-2px); } }
+@keyframes fishing-nibble { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+@keyframes fishing-reaction-shrink { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes fishing-loot-enter { from { opacity: 0; transform: translate(-50%, 20px) scale(.72); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+@keyframes fishing-loot-float { from { transform: translateY(2px) rotate(-2deg); } to { transform: translateY(-5px) rotate(2deg); } }
+@keyframes fishing-rays-spin { to { transform: rotate(360deg); } }
+@keyframes fishing-rare-pulse { from { filter: saturate(1); } to { filter: saturate(1.35) brightness(1.08); } }
+
+@media (prefers-reduced-motion: reduce) {
+  #root .fishing-quickbar,
+  #root .fishing-quickbar-bobber,
+  #root .fishing-action-button,
+  #root .fishing-reaction-window i,
+  #root .fishing-loot-reveal,
+  #root .fishing-loot-reveal img,
+  #root .fishing-loot-rays { animation: none !important; transition: none !important; }
+}
+
+#root .home-editor-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+#root .home-editor-controls label { display: grid; gap: 5px; color: #8ea4a4; font: 10px 'DM Mono', monospace; letter-spacing: .04em; text-transform: uppercase; }
+#root .home-editor-controls select, #root .home-editor-tool-row select { width: 100%; min-width: 0; height: 36px; padding: 0 8px; border: 1px solid rgba(181, 197, 231, .18); border-radius: 5px; outline: 0; color: #dce7e3; background: #1b2b34; font-size: 11px; text-transform: none; }
+#root .home-editor-controls select:focus, #root .home-editor-tool-row select:focus { border-color: rgba(132, 184, 255, .6); }
+#root .home-editor-tool-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 7px; margin-top: 9px; }
+#root .home-editor-tool-row .world-primary, #root .home-editor-tool-row .world-secondary { min-height: 36px; white-space: nowrap; }
+#root .home-editor-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin-top: 13px; padding: 7px; border: 1px solid rgba(132, 184, 255, .18); border-radius: 8px; background: rgba(4, 13, 18, .4); }
+#root .home-editor-cell { display: grid; min-width: 0; aspect-ratio: 1; place-items: center; border: 1px solid rgba(181, 220, 232, .12); border-radius: 4px; color: #d9f4dc; background: rgba(255, 255, 255, .035); font-size: 16px; }
+#root .home-editor-cell:not(:disabled):hover { border-color: rgba(200, 242, 103, .62); background: rgba(200, 242, 103, .1); }
+#root .home-editor-cell.is-filled { border-color: rgba(255, 184, 108, .32); background: rgba(255, 184, 108, .12); }
+#root .home-editor-cell:disabled { cursor: default; }
+#root .home-editor-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; color: #81999c; font: 10px 'DM Mono', monospace; }
+#root .home-editor-meta span:last-child { color: #c8f267; }
+
+#root .world-transition-error { position: fixed; z-index: 52; top: 18px; left: 50%; display: flex; width: min(520px, calc(100vw - 36px)); align-items: flex-start; gap: 14px; padding: 13px 14px; border: 1px solid rgba(255, 125, 125, .42); border-radius: 10px; transform: translateX(-50%); color: #ffe8e8; background: rgba(37, 19, 28, .96); box-shadow: 0 16px 36px rgba(4, 6, 14, .45); pointer-events: auto; backdrop-filter: blur(8px); }
+#root .world-transition-error > div { min-width: 0; flex: 1; }
+#root .world-transition-error-kicker { display: block; color: #ffaaa6; font: 9px 'DM Mono', monospace; letter-spacing: .08em; }
+#root .world-transition-error strong { display: block; margin-top: 5px; color: #fff4f4; font-size: 14px; }
+#root .world-transition-error p { margin: 4px 0 0; color: #e7c8c8; font-size: 11px; line-height: 1.4; }
+#root .world-transition-error button { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255, 180, 180, .22); border-radius: 5px; color: #ffc3c3; background: rgba(255, 255, 255, .05); font-size: 20px; }
+#root .world-transition-error button:hover { border-color: #ffaaa6; background: rgba(255, 125, 125, .13); }
+
+@media (max-width: 680px) {
+  #root .world-panel { top: 92px; right: 10px; width: min(390px, calc(100vw - 20px)); max-height: calc(100vh - 104px); padding: 14px; }
+  #root .fishing-quickbar { right: 76px; bottom: 12px; width: calc(100vw - 88px); grid-template-columns: minmax(0, 1fr) 142px; }
+  #root .home-editor-controls { grid-template-columns: 1fr 1fr; }
+  #root .home-editor-controls label:last-child { grid-column: 1 / -1; }
+  #root .home-editor-tool-row { grid-template-columns: 1fr 1fr; }
+  #root .home-editor-tool-row select { grid-column: 1 / -1; }
+}
+
+@media (max-width: 420px) {
+  #root .world-panel { top: 82px; right: 8px; width: calc(100vw - 16px); }
+  #root .fishing-quickbar { right: 66px; width: calc(100vw - 76px); grid-template-columns: 1fr; gap: 7px; padding: 9px 10px; }
+  #root .fishing-action-button { min-height: 36px; }
+  #root .world-panel-copy { font-size: 12px; }
+  #root .world-transition-error { top: 10px; width: calc(100vw - 20px); }
+}

@@ -1,0 +1,43 @@
+{
+  "license": "Apache-2.0",
+  "sourceRepository": "https://github.com/xnrpnsck2x-creator/pixel-social-world",
+  "sourceCommit": "f9f0f18764ab3f9c5bdf4e5090cd6dd9fa952a0f",
+  "assets": [
+    {
+      "sourcePath": "assets/maps/generated/life_fishing_riverbend_v1.png",
+      "destinationPath": "assets/world/fishing/life_fishing_riverbend_v1.png",
+      "module": "FishingWorldScene",
+      "notes": "Backdrop only; Phaser bounds, collision and interactions are authored in SkyOffice."
+    },
+    {
+      "sourcePath": "assets/housing/sliced/housing_fishing_props_v0/housing_fishing_props_v0_018.png",
+      "destinationPath": "assets/world/fishing/fish/pond_minnow.png",
+      "module": "FishingPanel",
+      "notes": "Selected/cropped fish icon from the source slice."
+    },
+    {
+      "sourcePath": "assets/housing/sliced/housing_fishing_props_v0/housing_fishing_props_v0_017.png",
+      "destinationPath": "assets/world/fishing/fish/leaf_carp.png",
+      "module": "FishingPanel",
+      "notes": "Selected/cropped fish icon from the source slice."
+    },
+    {
+      "sourcePath": "assets/housing/sliced/housing_fishing_props_v0/housing_fishing_props_v0_014.png",
+      "destinationPath": "assets/world/fishing/fish/moon_koi.png",
+      "module": "FishingPanel",
+      "notes": "Selected/cropped fish icon from the source slice."
+    },
+    {
+      "sourcePath": "assets/housing/generated/housing_fishing_props_v0_alpha.png",
+      "destinationPath": "assets/world/home/housing_fishing_props_v0_alpha.png",
+      "module": "HomeWorldScene",
+      "notes": "Selected housing prop sheet retained for future sprite slicing; current renderer uses validated item definitions."
+    },
+    {
+      "sourcePath": "LICENSE",
+      "destinationPath": "assets/world/licenses/pixel-social-world-Apache-2.0.txt",
+      "module": "FishingWorldScene, HomeWorldScene",
+      "notes": "License text copied at the pinned source commit."
+    }
+  ]
+}

@@ -1,25 +1,25 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 import Fab from '@mui/material/Fab'
-import IconButton from '@mui/material/IconButton'
-import Avatar from '@mui/material/Avatar'
 import Tooltip from '@mui/material/Tooltip'
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
-import ShareIcon from '@mui/icons-material/Share'
-import LightModeIcon from '@mui/icons-material/LightMode'
-import DarkModeIcon from '@mui/icons-material/DarkMode'
-import CloseIcon from '@mui/icons-material/Close'
-import LightbulbIcon from '@mui/icons-material/Lightbulb'
-import ArrowRightIcon from '@mui/icons-material/ArrowRight'
-import GitHubIcon from '@mui/icons-material/GitHub'
-import TwitterIcon from '@mui/icons-material/Twitter'
 import VideogameAssetIcon from '@mui/icons-material/VideogameAsset'
 import VideogameAssetOffIcon from '@mui/icons-material/VideogameAssetOff'
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents'
+import InventoryIcon from '@mui/icons-material/Inventory'
+import AssignmentIcon from '@mui/icons-material/Assignment'
+import PersonIcon from '@mui/icons-material/Person'
+import StorefrontIcon from '@mui/icons-material/Storefront'
+import GroupIcon from '@mui/icons-material/Group'
 
-import { BackgroundMode } from '../../../types/BackgroundMode'
-import { setShowJoystick, toggleBackgroundMode } from '../stores/UserStore'
+import { setShowJoystick } from '../stores/UserStore'
 import { useAppSelector, useAppDispatch } from '../hooks'
-import { getAvatarString, getColorByString } from '../util'
+import LeaderboardPanel from './LeaderboardPanel'
+import InventoryPanel from './InventoryPanel'
+import QuestPanel from './QuestPanel'
+import CharacterPanel from './CharacterPanel'
+import StorePanel from './StorePanel'
+import SocialPeoplePanel from './SocialPeoplePanel'
+import { getActiveWorldScene } from '../utils/activeWorld'
 
 const Backdrop = styled.div`
   position: fixed;
@@ -36,67 +36,9 @@ const Backdrop = styled.div`
   }
 `
 
-const Wrapper = styled.div`
-  position: relative;
-  font-size: 16px;
-  color: #eee;
-  background: #222639;
-  box-shadow: 0px 0px 5px #0000006f;
-  border-radius: 16px;
-  padding: 15px 35px 15px 15px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-
-  .close {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-  }
-
-  .tip {
-    margin-left: 12px;
-  }
-`
-
 const ButtonGroup = styled.div`
   display: flex;
   gap: 10px;
-`
-
-const Title = styled.h3`
-  font-size: 24px;
-  color: #eee;
-  text-align: center;
-`
-
-const RoomName = styled.div`
-  margin: 10px 20px;
-  max-width: 460px;
-  max-height: 150px;
-  overflow-wrap: anywhere;
-  overflow-y: auto;
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  align-items: center;
-
-  h3 {
-    font-size: 24px;
-    color: #eee;
-  }
-`
-
-const RoomDescription = styled.div`
-  margin: 0 20px;
-  max-width: 460px;
-  max-height: 150px;
-  overflow-wrap: anywhere;
-  overflow-y: auto;
-  font-size: 16px;
-  color: #c2c2c2;
-  display: flex;
-  justify-content: center;
 `
 
 const StyledFab = styled(Fab)<{ target?: string }>`
@@ -106,18 +48,153 @@ const StyledFab = styled(Fab)<{ target?: string }>`
 `
 
 export default function HelperButtonGroup() {
-  const [showControlGuide, setShowControlGuide] = useState(false)
-  const [showRoomInfo, setShowRoomInfo] = useState(false)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [featurePanel, setFeaturePanel] = useState<'character' | 'inventory' | 'quests' | 'store' | 'people' | null>(null)
+  const [featureButtonsStacked, setFeatureButtonsStacked] = useState(false)
+  const featureButtonsStackedRef = useRef(false)
+  const buttonGroupRef = useRef<HTMLDivElement>(null)
   const showJoystick = useAppSelector((state) => state.user.showJoystick)
-  const backgroundMode = useAppSelector((state) => state.user.backgroundMode)
   const roomJoined = useAppSelector((state) => state.room.roomJoined)
-  const roomId = useAppSelector((state) => state.room.roomId)
-  const roomName = useAppSelector((state) => state.room.roomName)
-  const roomDescription = useAppSelector((state) => state.room.roomDescription)
+  const loggedIn = useAppSelector((state) => state.user.loggedIn)
+  const unreadNotifications = useAppSelector((state) => state.social.people?.unreadNotifications || 0)
   const dispatch = useAppDispatch()
 
+  useEffect(() => {
+    if (!roomJoined || !loggedIn) {
+      featureButtonsStackedRef.current = false
+      setFeatureButtonsStacked(false)
+      return
+    }
+
+    let measureFrame = 0
+    let settleFrame = 0
+
+    const setStacked = (stacked: boolean) => {
+      if (featureButtonsStackedRef.current === stacked) return
+      featureButtonsStackedRef.current = stacked
+      setFeatureButtonsStacked(stacked)
+    }
+
+    const rectanglesOverlap = (first: DOMRect, second: DOMRect, padding: number) => (
+      first.left < second.right + padding &&
+      first.right > second.left - padding &&
+      first.top < second.bottom + padding &&
+      first.bottom > second.top - padding
+    )
+
+    const measureLayout = () => {
+      measureFrame = 0
+      const group = buttonGroupRef.current
+      if (!group || featureButtonsStackedRef.current) return
+
+      const groupRect = group.getBoundingClientRect()
+      const viewportCollision = (
+        groupRect.left < 8 ||
+        groupRect.right > window.innerWidth - 8 ||
+        groupRect.top < 8 ||
+        groupRect.bottom > window.innerHeight - 8
+      )
+      const blockers = Array.from(document.querySelectorAll<HTMLElement>(
+        [
+          '.player-hud',
+          '.new-player-guide',
+          '.guide-reopen',
+          '.combat-hotbar',
+          '.game-channel-chat',
+          '.game-chat-dock',
+          '.work-closed-dock',
+          '.audio-dock',
+        ].join(', '),
+      )).filter((element) => {
+        const rect = element.getBoundingClientRect()
+        return rect.width > 0 && rect.height > 0
+      })
+      const blockedByGameUi = blockers.some((element) => (
+        rectanglesOverlap(groupRect, element.getBoundingClientRect(), 8)
+      ))
+
+      setStacked(viewportCollision || blockedByGameUi)
+    }
+
+    const scheduleMeasure = (afterLayout = false) => {
+      if (measureFrame) window.cancelAnimationFrame(measureFrame)
+      if (settleFrame) window.cancelAnimationFrame(settleFrame)
+
+      if (afterLayout) {
+        measureFrame = window.requestAnimationFrame(() => {
+          measureFrame = 0
+          settleFrame = window.requestAnimationFrame(() => {
+            settleFrame = 0
+            measureLayout()
+          })
+        })
+        return
+      }
+
+      measureFrame = window.requestAnimationFrame(measureLayout)
+    }
+
+    const handleViewportChange = () => {
+      // Measure the current layout in-place. Toggling the class before every
+      // measurement caused a ResizeObserver feedback loop and visible jitter.
+      scheduleMeasure(true)
+    }
+
+    scheduleMeasure()
+    window.addEventListener('resize', handleViewportChange)
+
+    let hotbarObserver: ResizeObserver | undefined
+    if (typeof ResizeObserver !== 'undefined') {
+      hotbarObserver = new ResizeObserver(handleViewportChange)
+      document.querySelectorAll<HTMLElement>([
+        '.player-hud',
+        '.new-player-guide',
+        '.guide-reopen',
+        '.combat-hotbar',
+        '.game-channel-chat',
+        '.game-chat-dock',
+        '.work-closed-dock',
+        '.audio-dock',
+      ].join(', '))
+        .forEach((element) => hotbarObserver?.observe(element))
+    }
+
+    let layoutObserver: MutationObserver | undefined
+    if (typeof MutationObserver !== 'undefined' && document.body) {
+      layoutObserver = new MutationObserver(handleViewportChange)
+      layoutObserver.observe(document.body, { childList: true, subtree: true })
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange)
+      if (measureFrame) window.cancelAnimationFrame(measureFrame)
+      if (settleFrame) window.cancelAnimationFrame(settleFrame)
+      hotbarObserver?.disconnect()
+      layoutObserver?.disconnect()
+    }
+  }, [loggedIn, roomJoined])
+
+  useEffect(() => {
+    const game = getActiveWorldScene()
+    if (!featurePanel) return
+    game?.disableKeys('game-feature-panel')
+    return () => game?.enableKeys('game-feature-panel')
+  }, [featurePanel])
+
+  const openFeature = (panel: 'character' | 'inventory' | 'quests' | 'store' | 'people') => {
+    setFeaturePanel((current) => current === panel ? null : panel)
+    setShowLeaderboard(false)
+  }
+
   return (
-    <Backdrop>
+    <>
+      <LeaderboardPanel open={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
+      <CharacterPanel open={featurePanel === 'character'} onClose={() => setFeaturePanel(null)} />
+      <InventoryPanel open={featurePanel === 'inventory'} onClose={() => setFeaturePanel(null)} />
+      <QuestPanel open={featurePanel === 'quests'} onClose={() => setFeaturePanel(null)} />
+      <StorePanel open={featurePanel === 'store'} onClose={() => setFeaturePanel(null)} />
+      <SocialPeoplePanel open={featurePanel === 'people'} onClose={() => setFeaturePanel(null)} />
+      <Backdrop className="helper-button-backdrop">
       <div className="wrapper-group">
         {roomJoined && (
           <Tooltip title={showJoystick ? 'Disable virtual joystick' : 'Enable virtual joystick'}>
@@ -126,106 +203,82 @@ export default function HelperButtonGroup() {
             </StyledFab>
           </Tooltip>
         )}
-        {showRoomInfo && (
-          <Wrapper>
-            <IconButton className="close" onClick={() => setShowRoomInfo(false)} size="small">
-              <CloseIcon />
-            </IconButton>
-            <RoomName>
-              <Avatar style={{ background: getColorByString(roomName) }}>
-                {getAvatarString(roomName)}
-              </Avatar>
-              <h3>{roomName}</h3>
-            </RoomName>
-            <RoomDescription>
-              <ArrowRightIcon /> ID: {roomId}
-            </RoomDescription>
-            <RoomDescription>
-              <ArrowRightIcon /> Description: {roomDescription}
-            </RoomDescription>
-            <p className="tip">
-              <LightbulbIcon />
-              Shareable link coming up 😄
-            </p>
-          </Wrapper>
-        )}
-        {showControlGuide && (
-          <Wrapper>
-            <Title>Controls</Title>
-            <IconButton className="close" onClick={() => setShowControlGuide(false)} size="small">
-              <CloseIcon />
-            </IconButton>
-            <ul>
-              <li>
-                <strong>W, A, S, D or arrow keys</strong> to move
-              </li>
-              <li>
-                <strong>E</strong> to sit down (when facing a chair)
-              </li>
-              <li>
-                <strong>R</strong> to use computer to screen share (when facing a computer)
-              </li>
-              <li>
-                <strong>Enter</strong> to open chat
-              </li>
-              <li>
-                <strong>ESC</strong> to close chat
-              </li>
-            </ul>
-            <p className="tip">
-              <LightbulbIcon />
-              Video connection will start if you are close to someone else
-            </p>
-          </Wrapper>
-        )}
       </div>
-      <ButtonGroup>
+      <ButtonGroup
+        ref={buttonGroupRef}
+        className={`helper-button-group${featureButtonsStacked ? ' is-stacked' : ''}`}
+      >
         {roomJoined && (
           <>
-            <Tooltip title="Room Info">
+            {loggedIn && <Tooltip title="People & Friends">
               <StyledFab
+                className="helper-feature-fab people"
                 size="small"
-                onClick={() => {
-                  setShowRoomInfo(!showRoomInfo)
-                  setShowControlGuide(false)
-                }}
+                aria-label="Mở People & Friends"
+                aria-pressed={featurePanel === 'people'}
+                onClick={() => openFeature('people')}
               >
-                <ShareIcon />
+                <span className="helper-fab-icon-wrap"><GroupIcon />{unreadNotifications > 0 && <b className="helper-feature-badge">{unreadNotifications > 9 ? '9+' : unreadNotifications}</b>}</span>
+              </StyledFab>
+            </Tooltip>}
+            <Tooltip title="Nhân vật">
+              <StyledFab
+                className="helper-feature-fab character"
+                size="small"
+                aria-label="Mở thông tin nhân vật"
+                aria-pressed={featurePanel === 'character'}
+                onClick={() => openFeature('character')}
+              >
+                <PersonIcon />
               </StyledFab>
             </Tooltip>
-            <Tooltip title="Control Guide">
+            <Tooltip title="Túi đồ">
+              <StyledFab
+                className="helper-feature-fab inventory"
+                size="small"
+                aria-label="Mở túi đồ"
+                aria-pressed={featurePanel === 'inventory'}
+                onClick={() => openFeature('inventory')}
+              >
+                <InventoryIcon />
+              </StyledFab>
+            </Tooltip>
+            <StyledFab
+              className="helper-feature-fab store"
+              size="small"
+              title="Cửa hàng"
+              aria-label="Mở cửa hàng"
+              aria-pressed={featurePanel === 'store'}
+              onClick={() => openFeature('store')}
+            >
+              <StorefrontIcon />
+            </StyledFab>
+            <Tooltip title="Nhiệm vụ">
+              <StyledFab
+                className="helper-feature-fab quests"
+                size="small"
+                aria-label="Mở bảng nhiệm vụ"
+                aria-pressed={featurePanel === 'quests'}
+                onClick={() => openFeature('quests')}
+              >
+                <AssignmentIcon />
+              </StyledFab>
+            </Tooltip>
+            <Tooltip title="Bảng xếp hạng">
               <StyledFab
                 size="small"
+                aria-label="Bảng xếp hạng"
                 onClick={() => {
-                  setShowControlGuide(!showControlGuide)
-                  setShowRoomInfo(false)
+                  setShowLeaderboard(!showLeaderboard)
                 }}
               >
-                <HelpOutlineIcon />
+                <EmojiEventsIcon />
               </StyledFab>
             </Tooltip>
           </>
         )}
-        <Tooltip title="Visit Our GitHub">
-          <StyledFab
-            size="small"
-            href="https://github.com/kevinshen56714/SkyOffice"
-            target="_blank"
-          >
-            <GitHubIcon />
-          </StyledFab>
-        </Tooltip>
-        <Tooltip title="Follow Us on Twitter">
-          <StyledFab size="small" href="https://twitter.com/SkyOfficeApp" target="_blank">
-            <TwitterIcon />
-          </StyledFab>
-        </Tooltip>
-        <Tooltip title="Switch Background Theme">
-          <StyledFab size="small" onClick={() => dispatch(toggleBackgroundMode())}>
-            {backgroundMode === BackgroundMode.DAY ? <DarkModeIcon /> : <LightModeIcon />}
-          </StyledFab>
-        </Tooltip>
       </ButtonGroup>
-    </Backdrop>
+      </Backdrop>
+    </>
   )
 }

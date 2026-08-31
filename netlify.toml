@@ -1,6 +1,11 @@
-[build]  
-  command = "cd types && yarn && cd ../client && yarn && yarn build"
+[build]
+  command = "pnpm install --frozen-lockfile && pnpm --dir client install --frozen-lockfile && pnpm --dir client run build"
   publish = "client/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "11.19.0"
+  CI = "true"
 
 # Rule for router history mode
 [[redirects]]

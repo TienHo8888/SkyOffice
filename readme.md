@@ -64,6 +64,9 @@ SkyOffice works on all PC browsers (mobile browsers are currently not supported)
 
 You'll need [Node.js](https://nodejs.org/en/), [npm](https://www.npmjs.com/) installed.
 
+For the online multiplayer deployment (Netlify client + long-running Colyseus
+server + Supabase persistence), see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## Getting Started
 
 Clone this repository to your local machine:

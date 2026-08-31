@@ -11,8 +11,7 @@ import CloseIcon from '@mui/icons-material/Close'
 import 'emoji-mart/css/emoji-mart.css'
 import { Picker } from 'emoji-mart'
 
-import phaserGame from '../PhaserGame'
-import Game from '../scenes/Game'
+import { getActiveWorldScene } from '../utils/activeWorld'
 
 import { getColorByString } from '../util'
 import { useAppDispatch, useAppSelector } from '../hooks'
@@ -163,20 +162,65 @@ const Message = ({ chatMessage, messageType }) => {
 export default function Chat() {
   const [inputValue, setInputValue] = useState('')
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [readyToSubmit, setReadyToSubmit] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const inputValueRef = useRef('')
+  const isComposingRef = useRef(false)
+  const suppressSubmitRef = useRef(false)
   const chatMessages = useAppSelector((state) => state.chat.chatMessages)
   const focused = useAppSelector((state) => state.chat.focused)
   const showChat = useAppSelector((state) => state.chat.showChat)
   const dispatch = useAppDispatch()
-  const game = phaserGame.scene.keys.game as Game
+  const activeScene = getActiveWorldScene()
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    inputValueRef.current = event.target.value
     setInputValue(event.target.value)
   }
 
+  const submitMessage = () => {
+    // Pressing Enter while a Vietnamese/Japanese/Chinese IME is composing
+    // commits the composition. It must not be interpreted as a chat submit.
+    if (isComposingRef.current) return
+
+    // Keep the source value in a ref as well as React state. The keydown and
+    // form-submit events can arrive in the same tick, before React rerenders;
+    // clearing the ref first makes that pair idempotent and prevents duplicate
+    // or stale partial messages from being sent.
+    const val = inputValueRef.current.trim()
+    if (!val) return
+    inputValueRef.current = ''
+    setInputValue('')
+
+    // move focus back to the game
+    inputRef.current?.blur()
+
+    const network = activeScene?.network
+    const player = activeScene?.myPlayer
+    network?.addChatMessage(val)
+    player?.updateDialogBubble(val)
+  }
+
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      // `keyCode === 229` covers browsers/IME implementations that do not
+      // expose `isComposing` consistently during the Enter keydown.
+      if (isComposingRef.current || event.nativeEvent.isComposing || event.keyCode === 229) {
+        // Some browsers still dispatch the form submit default action after
+        // the IME consumes Enter. Ignore only that immediately-following
+        // submit, then allow the next deliberate Enter to send the message.
+        suppressSubmitRef.current = true
+        window.setTimeout(() => {
+          suppressSubmitRef.current = false
+        }, 0)
+        return
+      }
+      event.preventDefault()
+      event.stopPropagation()
+      submitMessage()
+      return
+    }
+
     if (event.key === 'Escape') {
       // move focus back to the game
       inputRef.current?.blur()
@@ -186,24 +230,12 @@ export default function Chat() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-
-    // this is added because without this, 2 things happen at the same
-    // time when Enter is pressed, (1) the inputRef gets focus (from
-    // useEffect) and (2) the form gets submitted (right after the input
-    // gets focused)
-    if (!readyToSubmit) {
-      setReadyToSubmit(true)
+    if (suppressSubmitRef.current) {
+      suppressSubmitRef.current = false
       return
     }
-    // move focus back to the game
-    inputRef.current?.blur()
-
-    const val = inputValue.trim()
-    setInputValue('')
-    if (val) {
-      game.network.addChatMessage(val)
-      game.myPlayer.updateDialogBubble(val)
-    }
+    if (isComposingRef.current) return
+    submitMessage()
   }
 
   const scrollToBottom = () => {
@@ -230,7 +262,10 @@ export default function Chat() {
               <IconButton
                 aria-label="close dialog"
                 className="close"
-                onClick={() => dispatch(setShowChat(false))}
+                onClick={() => {
+                  dispatch(setFocused(false))
+                  dispatch(setShowChat(false))
+                }}
                 size="small"
               >
                 <CloseIcon />
@@ -248,7 +283,9 @@ export default function Chat() {
                     showSkinTones={false}
                     showPreview={false}
                     onSelect={(emoji) => {
-                      setInputValue(inputValue + emoji.native)
+                      const nextValue = `${inputValueRef.current}${emoji.native}`
+                      inputValueRef.current = nextValue
+                      setInputValue(nextValue)
                       setShowEmojiPicker(!showEmojiPicker)
                       dispatch(setFocused(true))
                     }}
@@ -266,15 +303,22 @@ export default function Chat() {
                 value={inputValue}
                 onKeyDown={handleKeyDown}
                 onChange={handleChange}
+                onCompositionStart={() => {
+                  isComposingRef.current = true
+                }}
+                onCompositionEnd={() => {
+                  isComposingRef.current = false
+                  const nextValue = inputRef.current?.value ?? inputValueRef.current
+                  inputValueRef.current = nextValue
+                  setInputValue(nextValue)
+                }}
                 onFocus={() => {
                   if (!focused) {
                     dispatch(setFocused(true))
-                    setReadyToSubmit(true)
                   }
                 }}
                 onBlur={() => {
                   dispatch(setFocused(false))
-                  setReadyToSubmit(false)
                 }}
               />
               <IconButton aria-label="emoji" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>

@@ -16,8 +16,9 @@ export default class PlayerUpdateCommand extends Command<IOfficeState, Payload> 
     const player = this.room.state.players.get(client.sessionId)
 
     if (!player) return
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
     player.x = x
     player.y = y
-    player.anim = anim
+    if (typeof anim === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(anim)) player.anim = anim
   }
 }

@@ -1,12 +1,12 @@
-import Peer from 'peerjs'
+import Peer, { MediaConnection } from 'peerjs'
 import Network from '../services/Network'
 import store from '../stores'
 import { setVideoConnected } from '../stores/UserStore'
 
 export default class WebRTC {
   private myPeer: Peer
-  private peers = new Map<string, { call: Peer.MediaConnection; video: HTMLVideoElement }>()
-  private onCalledPeers = new Map<string, { call: Peer.MediaConnection; video: HTMLVideoElement }>()
+  private peers = new Map<string, { call: MediaConnection; video: HTMLVideoElement }>()
+  private onCalledPeers = new Map<string, { call: MediaConnection; video: HTMLVideoElement }>()
   private videoGrid = document.querySelector('.video-grid')
   private buttonGrid = document.querySelector('.button-grid')
   private myVideo = document.createElement('video')
@@ -128,6 +128,17 @@ export default class WebRTC {
       onCalledPeer?.video.remove()
       this.onCalledPeers.delete(sanitizedId)
     }
+  }
+
+  destroy() {
+    this.peers.forEach(({ call, video }) => { call.close(); video.remove() })
+    this.onCalledPeers.forEach(({ call, video }) => { call.close(); video.remove() })
+    this.peers.clear()
+    this.onCalledPeers.clear()
+    this.myStream?.getTracks().forEach((track) => track.stop())
+    this.myStream = undefined
+    if (this.myPeer.open) this.myPeer.destroy()
+    this.myVideo.remove()
   }
 
   // method to set up mute/unmute and video on/off buttons

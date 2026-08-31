@@ -1,0 +1,220 @@
+/* The wardrobe catalog is deliberately tabbed: hundreds of products remain
+   discoverable without turning the preview into a tiny, noisy side panel. */
+.store-tabs {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 8px;
+  padding-bottom: 1px;
+}
+
+.store-tab {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 7px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 6px;
+  color: #91a79a;
+  background: rgba(5,15,20,.54);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s, color .16s, background .16s, transform .16s;
+}
+
+.store-tab:hover {
+  border-color: rgba(255,191,120,.48);
+  color: #ffe0b3;
+  background: rgba(255,184,108,.08);
+  transform: translateY(-1px);
+}
+
+.store-tab.is-active {
+  border-color: rgba(255,191,120,.78);
+  color: #fff0cf;
+  background: linear-gradient(135deg, rgba(255,184,108,.2), rgba(120,216,255,.08));
+  box-shadow: inset 0 0 0 1px rgba(255,224,138,.08), 0 0 12px rgba(255,184,108,.08);
+}
+
+.store-tab:focus-visible {
+  outline: 2px solid #c8f267;
+  outline-offset: 2px;
+}
+
+.store-tab-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 4px;
+  color: #ffbf78;
+  background: rgba(255,184,108,.08);
+  font: 12px Georgia, serif;
+}
+
+.store-tab-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.store-tab-copy strong {
+  overflow: hidden;
+  color: inherit;
+  font: 8px 'DM Mono', monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-tab-copy small {
+  overflow: hidden;
+  color: #738e81;
+  font: 5px 'DM Mono', monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.store-tab.is-active .store-tab-copy small {
+  color: #c9aa79;
+}
+
+.store-tab > b {
+  display: grid;
+  min-width: 21px;
+  height: 18px;
+  place-items: center;
+  padding: 0 3px;
+  border-radius: 4px;
+  color: #839f90;
+  background: rgba(255,255,255,.06);
+  font: 7px 'DM Mono', monospace;
+}
+
+.store-tab.is-active > b {
+  color: #31251a;
+  background: #ffbf78;
+}
+
+.store-catalog-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 225px);
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.store-catalog-toolbar .store-catalog-head {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.store-catalog-toolbar .store-catalog-head > small {
+  max-width: 230px;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.store-search {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid rgba(120,216,255,.22);
+  border-radius: 5px;
+  color: #78d8ff;
+  background: rgba(3,15,23,.64);
+}
+
+.store-search:focus-within {
+  border-color: rgba(200,242,103,.7);
+  box-shadow: 0 0 12px rgba(200,242,103,.08);
+}
+
+.store-search > span {
+  flex: 0 0 auto;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.store-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: #e8f3e8;
+  background: transparent;
+  font: 8px 'DM Mono', monospace;
+}
+
+.store-search input::placeholder {
+  color: #6d887b;
+}
+
+.store-empty {
+  display: grid;
+  grid-column: 1 / -1;
+  min-height: 130px;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  border: 1px dashed rgba(255,191,120,.25);
+  border-radius: 8px;
+  color: #92a89b;
+  background: rgba(255,255,255,.018);
+  text-align: center;
+}
+
+.store-empty strong {
+  color: #ffe0b3;
+  font: 10px 'DM Mono', monospace;
+}
+
+.store-empty span {
+  color: #71897c;
+  font: 7px 'DM Mono', monospace;
+}
+
+.store-panel .game-feature-footer a {
+  color: #78d8ff;
+  text-decoration: none;
+}
+
+.store-panel .game-feature-footer a:hover {
+  color: #c8f267;
+  text-decoration: underline;
+}
+
+@media (max-width: 680px) {
+  .store-tabs {
+    display: flex;
+    max-width: 100%;
+    overflow-x: auto;
+    margin-right: -2px;
+    padding: 2px 2px 5px;
+    scrollbar-color: rgba(255,184,108,.45) rgba(255,255,255,.04);
+  }
+
+  .store-tab {
+    width: 112px;
+    flex: 0 0 112px;
+  }
+
+  .store-catalog-toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .store-catalog-toolbar .store-catalog-head > small {
+    max-width: none;
+    text-align: left;
+  }
+
+  .store-search {
+    width: 100%;
+  }
+}

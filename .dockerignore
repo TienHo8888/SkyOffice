@@ -1,0 +1,11 @@
+.git
+.github
+node_modules
+client/node_modules
+client/dist
+external
+.env
+.env.*
+server/lib
+server/data/studio-db.json
+server/data/*.tmp

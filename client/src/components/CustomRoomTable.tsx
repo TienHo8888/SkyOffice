@@ -122,7 +122,7 @@ export const CustomRoomTable = () => {
   }
 
   return availableRooms.length === 0 ? (
-    <MessageText>There are no custom rooms now, create one or join the public lobby.</MessageText>
+    <MessageText>There are no custom rooms now. Join the public lobby instead.</MessageText>
   ) : (
     <>
       <CustomRoomTableContainer component={Paper}>

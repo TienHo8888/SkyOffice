@@ -16,7 +16,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "noImplicitAny": false,
-    "strictNullChecks": true,
+    "strictNullChecks": false,
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }],

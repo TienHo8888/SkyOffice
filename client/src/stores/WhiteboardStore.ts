@@ -37,11 +37,10 @@ export const whiteboardSlice = createSlice({
       state.whiteboardId = null
       state.whiteboardUrl = null
     },
-    setWhiteboardUrls: (state, action: PayloadAction<{ whiteboardId: string; roomId: string }>) => {
-      state.urls.set(
-        action.payload.whiteboardId,
-        `https://wbo.ophir.dev/boards/sky-office-${action.payload.roomId}`
-      )
+    setWhiteboardUrls: (state, _action: PayloadAction<{ whiteboardId: string; roomId: string }>) => {
+      // The original SkyOffice whiteboard used an external provider.
+      // Keep the network action compatible, but do not expose or load third-party URLs in the lobby.
+      state.urls.clear()
     },
   },
 })

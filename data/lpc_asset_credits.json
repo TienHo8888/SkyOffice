@@ -1,0 +1,182 @@
+{
+  "generator": {
+    "name": "Universal LPC Spritesheet Character Generator",
+    "repository": "https://github.com/LiberatedPixelCup/Universal-LPC-Spritesheet-Character-Generator",
+    "commit": "6a437fcecefbc7b82b401ca319046f80d67cdd2b",
+    "creditsFile": "external/universal-lpc/CREDITS.csv"
+  },
+  "runtimePolicy": "Only the curated PNG sheets listed below are copied into the runtime bundle. Check the upstream CREDITS.csv for the exact authors, URLs and license combination of every source PNG before publishing.",
+  "selectedSources": {
+    "body": [
+      "body/bodies/male",
+      "body/bodies/female",
+      "body/bodies/teen",
+      "body/bodies/pregnant"
+    ],
+    "face": [
+      "head/heads/human/male",
+      "head/heads/human/female",
+      "head/heads/human/male_gaunt",
+      "head/heads/human/female_small",
+      "head/heads/human/male_elderly",
+      "head/heads/human/female_elderly",
+      "head/heads/human/male_plump",
+      "head/heads/human/male_small"
+    ],
+    "hair": [
+      "hair/plain/adult",
+      "hair/bob/adult",
+      "hair/messy2/adult",
+      "hair/pixie/adult",
+      "hair/afro/adult",
+      "hair/bangs/adult",
+      "hair/bedhead/adult",
+      "hair/bob_side_part/adult",
+      "hair/buzzcut/adult",
+      "hair/cornrows/adult",
+      "hair/curly_long/adult",
+      "hair/curly_short/adult",
+      "hair/curtains/adult",
+      "hair/dreadlocks_long/adult",
+      "hair/long/adult",
+      "hair/long_messy/adult",
+      "hair/mop/adult",
+      "hair/flat_top_fade/adult",
+      "hair/half_up/adult",
+      "hair/pigtails/adult",
+      "hair/spiked/adult",
+      "hair/bangs_bun/adult",
+      "hair/loose/adult",
+      "hair/jewfro/adult"
+    ],
+    "feature": [
+      "facial/glasses/glasses/adult",
+      "facial/glasses/round/adult",
+      "facial/glasses/nerd/adult",
+      "facial/glasses/shades/adult",
+      "facial/patches/eyepatch/ambi/adult",
+      "beards/beard/basic",
+      "beards/beard/medium",
+      "beards/beard/trimmed",
+      "beards/beard/5oclock_shadow",
+      "beards/mustache/basic"
+    ],
+    "top": [
+      "torso/clothes/shortsleeve/tshirt/male",
+      "torso/clothes/shortsleeve/tshirt/female",
+      "torso/clothes/longsleeve/longsleeve/male",
+      "torso/clothes/longsleeve/longsleeve/female",
+      "torso/clothes/shortsleeve/tshirt_vneck/male",
+      "torso/clothes/shortsleeve/tshirt_vneck/female",
+      "torso/clothes/shortsleeve/shortsleeve_polo/male",
+      "torso/clothes/shortsleeve/shortsleeve_polo/female",
+      "torso/clothes/shortsleeve/shortsleeve_cardigan/male",
+      "torso/clothes/shortsleeve/shortsleeve_cardigan/female",
+      "torso/clothes/shortsleeve/tshirt_buttoned/male",
+      "torso/clothes/shortsleeve/tshirt_buttoned/female",
+      "torso/clothes/shortsleeve/tshirt_scoop/male",
+      "torso/clothes/shortsleeve/tshirt_scoop/female",
+      "torso/clothes/longsleeve/longsleeve2_polo/male",
+      "torso/clothes/longsleeve/longsleeve2_polo/female",
+      "torso/clothes/longsleeve/longsleeve2_cardigan/male",
+      "torso/clothes/longsleeve/longsleeve2_cardigan/female",
+      "torso/clothes/sleeveless/sleeveless1/male",
+      "torso/clothes/sleeveless/sleeveless1/female",
+      "torso/clothes/longsleeve/longsleeve2_buttoned/male",
+      "torso/clothes/longsleeve/longsleeve2_buttoned/female",
+      "torso/clothes/longsleeve/longsleeve2_vneck/male",
+      "torso/clothes/longsleeve/longsleeve2_vneck/female",
+      "torso/clothes/shortsleeve/shortsleeves2/male",
+      "torso/clothes/shortsleeve/shortsleeves2/female",
+      "torso/clothes/sleeveless/sleeveless2_buttoned/male",
+      "torso/clothes/sleeveless/sleeveless2_buttoned/female"
+    ],
+    "bottom": [
+      "legs/pants/male",
+      "legs/pants/thin",
+      "legs/shorts/shorts/male",
+      "legs/shorts/shorts/thin",
+      "legs/formal/male",
+      "legs/formal/thin",
+      "legs/cuffed/male",
+      "legs/cuffed/thin",
+      "legs/pants2/male",
+      "legs/pants2/thin",
+      "legs/formal_striped/male",
+      "legs/formal_striped/thin",
+      "legs/leggings/male",
+      "legs/leggings/thin",
+      "legs/pantaloons/male",
+      "legs/pantaloons/thin",
+      "legs/shorts/short_shorts/male",
+      "legs/shorts/short_shorts/thin",
+      "legs/leggings2/male",
+      "legs/leggings2/thin"
+    ],
+    "shoes": [
+      "feet/shoes/basic/male",
+      "feet/shoes/basic/thin",
+      "feet/boots/basic/male",
+      "feet/boots/basic/thin",
+      "feet/sandals/male",
+      "feet/sandals/thin",
+      "feet/boots/fold/male",
+      "feet/boots/fold/thin",
+      "feet/boots/revised/male",
+      "feet/boots/revised/thin",
+      "feet/shoes/revised/male",
+      "feet/shoes/revised/thin",
+      "feet/shoes/ghillies/male",
+      "feet/shoes/ghillies/thin",
+      "feet/slippers/male",
+      "feet/slippers/thin"
+    ],
+    "shadow": [
+      "shadow/adult"
+    ],
+    "weapon": [
+      "weapon/sword/arming/universal",
+      "weapon/sword/arming/attack_slash"
+    ]
+  },
+  "shopSources": {
+    "tops": {
+      "sourceRoot": "torso",
+      "importedSourceLayers": 100,
+      "runtimePath": "client/public/assets/avatar/lpc/shop/top/001..100"
+    },
+    "bottoms": {
+      "sourceRoot": "legs",
+      "importedSourceLayers": 34,
+      "catalogProducts": 100,
+      "runtimePath": "client/public/assets/avatar/lpc/shop/bottom/001..034",
+      "note": "Additional products are palette variants of the imported LPC silhouettes."
+    },
+    "headwear": {
+      "sourceRoot": "hat",
+      "importedSourceLayers": 100,
+      "runtimePath": "client/public/assets/avatar/lpc/shop/hat/001..100"
+    },
+    "footwear": {
+      "sourceRoot": "feet",
+      "importedSourceLayers": 34,
+      "catalogProducts": 100,
+      "runtimePath": "client/public/assets/avatar/lpc/shop/shoes/001..034",
+      "note": "Additional products are palette variants of the imported LPC silhouettes."
+    },
+    "accessories": {
+      "sourceRoots": ["neck", "arms", "shoulders"],
+      "importedSourceLayers": 43,
+      "catalogProducts": 100,
+      "runtimePath": "client/public/assets/avatar/lpc/shop/accessory/{neck,arms,shoulders}",
+      "note": "Products cycle through the imported LPC accessory silhouettes with catalog color variants."
+    }
+  },
+  "licenseNotes": [
+    "Universal LPC art is distributed under the individual licenses recorded in CREDITS.csv; the selected base/body art includes OGA-BY, CC-BY-SA and GPL entries, while the shadow is CC0.",
+    "The saber action sheets use the universal arming/sword assets; copied action fallbacks are documented in scripts/import-lpc-avatar-assets.sh.",
+    "Long-bottom sheets keep their original art and receive a small lower-leg coverage repair using the credited pantaloons silhouette; shorts remain intentionally uncovered below the hem.",
+    "The shop catalog adds color variants only as separate product records; it does not claim new upstream artwork authorship for those variants.",
+    "Do not remove the upstream attribution trail when adding new catalog entries."
+  ]
+}

@@ -2,6 +2,8 @@ import Phaser from 'phaser'
 import Game from './scenes/Game'
 import Background from './scenes/Background'
 import Bootstrap from './scenes/Bootstrap'
+import FishingWorldScene from './scenes/FishingWorldScene'
+import HomeWorldScene from './scenes/HomeWorldScene'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -16,12 +18,12 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 0 },
+      gravity: { x: 0, y: 0 },
       debug: false,
     },
   },
   autoFocus: true,
-  scene: [Bootstrap, Background, Game],
+  scene: [Bootstrap, Background, Game, FishingWorldScene, HomeWorldScene],
 }
 
 const phaserGame = new Phaser.Game(config)

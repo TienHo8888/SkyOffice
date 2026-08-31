@@ -3,3 +3,7 @@
 node_modules
 /.DS_Store
 /server/lib
+/server/data/studio-db.json
+/server/data/*.tmp
+/external/
+/supabase/.temp/
