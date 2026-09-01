@@ -3,14 +3,13 @@ import Network from '../services/Network'
 import { BackgroundMode } from '../../../types/BackgroundMode'
 import store from '../stores'
 import { setRoomJoined } from '../stores/RoomStore'
-import { AVATAR_ANIMATIONS, AVATAR_CATALOG, AvatarSlot, DEFAULT_CHARACTER_CONFIG, getAvatarAssetKey, getAvatarAssetSet, getAvatarCatalogItem, getAvatarSheetFrameSize, LPC_SHADOW_ASSETS } from '../../../types/Avatar'
+import { AVATAR_ANIMATIONS, AvatarSlot, DEFAULT_CHARACTER_CONFIG, getAvatarAssetKey, getAvatarAssetSet, getAvatarCatalogItem, getAvatarSheetFrameSize, LPC_SHADOW_ASSETS } from '../../../types/Avatar'
 import { Event, phaserEvents } from '../events/EventCenter'
 import type { WorldId } from '../../../types/IWorldState'
 
 export default class Bootstrap extends Phaser.Scene {
   private preloadComplete = false
   private readonly loadedLpcAssets = new Set<string>()
-  private catalogAssetsQueued = false
   network!: Network
 
   private queueLpcAssetSet(assetSet: typeof LPC_SHADOW_ASSETS) {
@@ -31,19 +30,6 @@ export default class Bootstrap extends Phaser.Scene {
       const assetSet = getAvatarAssetSet(item, DEFAULT_CHARACTER_CONFIG.bodyProfile)
       if (assetSet) this.queueLpcAssetSet(assetSet)
     })
-  }
-
-  private queueCatalogAssetsInBackground() {
-    if (this.catalogAssetsQueued) return
-    this.catalogAssetsQueued = true
-    AVATAR_CATALOG.forEach((item) => {
-      Object.values(item.assets).forEach((assetSet) => {
-        if (assetSet) this.queueLpcAssetSet(assetSet)
-      })
-    })
-    // The initial scene is already usable. Continue filling Phaser's texture
-    // cache without keeping the login/world transition behind the shop catalog.
-    this.load.start()
   }
 
   constructor() {
@@ -116,9 +102,9 @@ export default class Bootstrap extends Phaser.Scene {
       frameHeight: 48,
     })
 
-    // Load the default avatar layers before entering the world. The complete
-    // shop catalog contains thousands of sheets, so queue it only after the
-    // playable scene is available and let Phaser fill the cache in background.
+    // Load only the default avatar layers before entering the world. Shop
+    // layers are requested on demand by the preview/Phaser asset cache so a
+    // 600+ item catalog cannot flood the browser during startup.
     this.queueDefaultLpcAssets()
 
     this.load.once('complete', () => {
@@ -129,7 +115,6 @@ export default class Bootstrap extends Phaser.Scene {
       // once the scene manager is ready instead of leaving the UI on the
       // room-selection screen.
       if (this.network?.getPlayers()) this.handleWorldJoined({ worldId: this.network.getActiveWorld() })
-      this.queueCatalogAssetsInBackground()
     })
   }
 

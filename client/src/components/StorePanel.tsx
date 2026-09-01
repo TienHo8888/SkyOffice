@@ -85,6 +85,7 @@ function StoreOutfitCardPreview({ baseConfig, item }: { baseConfig: CharacterCon
     direction="down"
     showWeapon={false}
     paused
+    lazy
     className="store-outfit-card-preview"
   />
 }

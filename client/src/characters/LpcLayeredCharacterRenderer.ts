@@ -19,6 +19,7 @@ import {
   LPC_SHADOW_ASSETS,
   normalizeCharacterConfig,
 } from '../../../types/Avatar'
+import { ensureAvatarTexture } from './AvatarAssetCache'
 
 interface RenderLayer {
   sprite: Phaser.GameObjects.Sprite
@@ -47,6 +48,7 @@ export default class LpcLayeredCharacterRenderer {
   private animationStartedAt = 0
   private lastFrame = -1
   private lastAnimationKey = ''
+  private configRevision = 0
 
   constructor(private readonly scene: Phaser.Scene) {
     this.config = normalizeCharacterConfig(undefined)
@@ -54,6 +56,7 @@ export default class LpcLayeredCharacterRenderer {
   }
 
   setConfig(config: CharacterConfig) {
+    const revision = ++this.configRevision
     this.config = normalizeCharacterConfig(config)
     this.rebuildLayers()
     this.container.setVisible(true)
@@ -61,6 +64,7 @@ export default class LpcLayeredCharacterRenderer {
     this.lastFrame = -1
     this.lastAnimationKey = ''
     this.syncFrame(this.getFrameAt(0))
+    void this.loadConfigTextures(revision)
   }
 
   setAnimation(animationKey: string) {
@@ -110,7 +114,33 @@ export default class LpcLayeredCharacterRenderer {
   }
 
   destroy() {
+    this.configRevision += 1
     this.container.destroy(true)
+  }
+
+  private getConfigAssetPaths(): Array<{ path: string; frameSize: number }> {
+    const paths = new Map<string, number>()
+    const addPath = (animation: AvatarAnimation, path?: string) => {
+      if (path) paths.set(path, getAvatarSheetFrameSize(animation, path))
+    }
+    Object.entries(LPC_SHADOW_ASSETS).forEach(([animation, path]) => addPath(animation as AvatarAnimation, path))
+    LPC_LAYER_RENDER_ORDER.forEach((slot) => {
+      const item = getAvatarCatalogItem(this.config.slots[slot], slot)
+      const assets = getAvatarAssetSet(item, this.config.bodyProfile)
+      Object.entries(assets || {}).forEach(([animation, path]) => addPath(animation as AvatarAnimation, path))
+    })
+    return [...paths.entries()].map(([path, frameSize]) => ({ path, frameSize }))
+  }
+
+  private async loadConfigTextures(revision: number) {
+    await Promise.all(this.getConfigAssetPaths().map(({ path, frameSize }) => ensureAvatarTexture(this.scene, path, frameSize)))
+    if (
+      revision !== this.configRevision ||
+      !this.container.active ||
+      !this.scene?.sys?.isActive()
+    ) return
+    this.rebuildLayers()
+    this.syncFrame(this.getFrameAt(Math.max(0, this.scene.time.now - this.animationStartedAt)))
   }
 
   private rebuildLayers() {

@@ -13,6 +13,7 @@ import {
   normalizeCharacterConfig,
 } from '../../../types/Avatar'
 import type { AvatarAnimation, AvatarDirection, AvatarSlot, CharacterConfig } from '../../../types/Avatar'
+import { getCachedAvatarImage, loadAvatarImage } from '../characters/AvatarAssetCache'
 
 const TINTED_SLOTS: readonly AvatarSlot[] = ['top', 'bottom', 'shoes', 'hat', 'neck', 'arms', 'shoulders']
 
@@ -31,6 +32,8 @@ interface LpcAvatarPreviewProps {
   showWeapon?: boolean
   /** Render only the first frame; useful for static catalog thumbnails. */
   paused?: boolean
+  /** Defer network work until this preview is near the visible scroll area. */
+  lazy?: boolean
 }
 
 function getPreviewLayers(config: CharacterConfig, animation: AvatarAnimation, showWeapon: boolean): PreviewLayer[] {
@@ -47,16 +50,6 @@ function getPreviewLayers(config: CharacterConfig, animation: AvatarAnimation, s
   return layers.sort((left, right) => left.z - right.z)
 }
 
-function loadImage(source: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.decoding = 'async'
-    image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error(`Unable to load avatar layer: ${source}`))
-    image.src = source
-  })
-}
-
 export default function LpcAvatarPreview({
   config,
   animation = 'idle',
@@ -64,38 +57,59 @@ export default function LpcAvatarPreview({
   className,
   showWeapon = true,
   paused = false,
+  lazy = false,
 }: LpcAvatarPreviewProps) {
+  const previewRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map())
-  const [loading, setLoading] = useState(true)
+  const [isNearViewport, setIsNearViewport] = useState(!lazy)
+  const [loading, setLoading] = useState(!lazy)
+  const [hasMissingLayer, setHasMissingLayer] = useState(false)
   const [loadedVersion, setLoadedVersion] = useState(0)
   const normalizedConfig = useMemo(() => normalizeCharacterConfig(config), [config])
 
   useEffect(() => {
+    if (!lazy) {
+      setIsNearViewport(true)
+      return
+    }
+
+    const preview = previewRef.current
+    if (!preview) return
+    if (!('IntersectionObserver' in window)) {
+      setIsNearViewport(true)
+      return
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return
+      setIsNearViewport(true)
+      observer.disconnect()
+    }, { rootMargin: '420px 0px' })
+    observer.observe(preview)
+    return () => observer.disconnect()
+  }, [lazy])
+
+  useEffect(() => {
+    if (!isNearViewport) return
     let cancelled = false
     const paths = getPreviewLayers(normalizedConfig, animation, showWeapon).map((layer) => layer.path)
-    setLoading(paths.some((path) => !imageCache.current.has(path)))
+    setLoading(paths.some((path) => !getCachedAvatarImage(path)))
+    setHasMissingLayer(false)
 
-    Promise.all(paths.map(async (path) => {
-      if (imageCache.current.has(path)) return
-      try {
-        imageCache.current.set(path, await loadImage(path))
-      } catch {
-        // Keep the preview usable if an optional art layer is unavailable.
-      }
-    })).finally(() => {
+    Promise.all(paths.map((path) => loadAvatarImage(path))).then((images) => {
       if (!cancelled) {
+        setHasMissingLayer(images.some((image) => !image))
         setLoading(false)
         setLoadedVersion((version) => version + 1)
       }
     })
 
     return () => { cancelled = true }
-  }, [animation, normalizedConfig, showWeapon])
+  }, [animation, isNearViewport, normalizedConfig, showWeapon])
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!canvas || !isNearViewport) return
     const context = canvas.getContext('2d')
     if (!context) return
 
@@ -117,7 +131,7 @@ export default function LpcAvatarPreview({
         : Math.floor((now - startedAt) / LPC_ANIMATION_FRAME_DURATIONS[animation]) % LPC_ANIMATION_FRAME_COUNTS[animation]
 
       layers.forEach((layer) => {
-        const image = imageCache.current.get(layer.path)
+        const image = getCachedAvatarImage(layer.path)
         if (!image) return
         const sourceWidth = image.naturalWidth || image.width
         const sourceHeight = image.naturalHeight || image.height
@@ -145,12 +159,14 @@ export default function LpcAvatarPreview({
 
     frameHandle = window.requestAnimationFrame(render)
     return () => window.cancelAnimationFrame(frameHandle)
-  }, [animation, direction, loadedVersion, normalizedConfig, paused, showWeapon])
+  }, [animation, direction, isNearViewport, loadedVersion, normalizedConfig, paused, showWeapon])
 
   return (
-    <div className={`lpc-avatar-preview${className ? ` ${className}` : ''}`}>
-      <canvas ref={canvasRef} width={128} height={128} aria-label="Avatar preview" />
-      {loading && <span className="lpc-avatar-preview-loading">Đang tải layer…</span>}
+    <div ref={previewRef} className={`lpc-avatar-preview${className ? ` ${className}` : ''}`} aria-busy={loading}>
+      {isNearViewport && <canvas ref={canvasRef} width={128} height={128} aria-label="Avatar preview" />}
+      {!isNearViewport && <span className="lpc-avatar-preview-deferred">Cuộn để xem</span>}
+      {isNearViewport && loading && <span className="lpc-avatar-preview-loading">Đang tải layer…</span>}
+      {isNearViewport && !loading && hasMissingLayer && <span className="lpc-avatar-preview-error">Thiếu layer</span>}
     </div>
   )
 }
