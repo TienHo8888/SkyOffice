@@ -276,7 +276,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   setCharacterConfig(config?: CharacterConfig) {
-    if (!this.isActiveInScene()) return
+    // World scenes call this from create(), where Phaser may not have flipped
+    // sys.isActive() yet. Dropping the config at that moment leaves the
+    // legacy Adam sprite visible for the entire destination world.
+    if (!this.isAlive()) return
     this.characterConfig = config
     if (!config) {
       this.setVisible(true)

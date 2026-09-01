@@ -13,6 +13,7 @@ import '../characters/OtherPlayer'
 import MyPlayer from '../characters/MyPlayer'
 import OtherPlayer from '../characters/OtherPlayer'
 import PlayerSelector from '../characters/PlayerSelector'
+import { resolvePlayerAppearance } from '../characters/resolvePlayerAppearance'
 import Network from '../services/Network'
 import { IPlayer } from '../../../types/IOfficeState'
 import { PlayerBehavior } from '../../../types/PlayerBehavior'
@@ -209,12 +210,16 @@ export default class Game extends Phaser.Scene {
 
     // debugDraw(groundLayer, this)
 
-    const savedAvatar = store.getState().user.authUser?.avatarKey || 'adam'
-    this.myPlayer = this.add.myPlayer(705, 500, savedAvatar, this.network.mySessionId)
-    this.myPlayer.userId = store.getState().user.authUser?.id || ''
-    const savedCharacterConfig = store.getState().user.authUser?.characterConfig
-    if (savedCharacterConfig) this.myPlayer.setCharacterConfig(savedCharacterConfig)
-    const savedLoadout = store.getState().social.snapshot?.loadout
+    const state = store.getState()
+    const appearance = resolvePlayerAppearance({
+      user: state.user.authUser,
+      social: state.social.snapshot,
+      networkPlayer: this.network.getPlayers()?.get(this.network.mySessionId),
+    })
+    this.myPlayer = this.add.myPlayer(705, 500, appearance.avatarKey, this.network.mySessionId)
+    this.myPlayer.userId = state.user.authUser?.id || this.network.getPlayers()?.get(this.network.mySessionId)?.userId || ''
+    if (appearance.characterConfig) this.myPlayer.setCharacterConfig(appearance.characterConfig)
+    const savedLoadout = state.social.snapshot?.loadout
     this.myPlayer.setNameplate(savedLoadout?.nameplateId || 'nameplate-basic')
     this.myPlayer.setTitle(savedLoadout?.titleId)
     this.playerSelector = new PlayerSelector(this, 0, 0, 16, 16)

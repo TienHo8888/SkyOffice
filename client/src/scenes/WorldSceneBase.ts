@@ -5,6 +5,7 @@ import '../characters/OtherPlayer'
 import MyPlayer from '../characters/MyPlayer'
 import OtherPlayer from '../characters/OtherPlayer'
 import PlayerSelector from '../characters/PlayerSelector'
+import { resolvePlayerAppearance } from '../characters/resolvePlayerAppearance'
 import Network from '../services/Network'
 import type { IPlayer } from '../../../types/IOfficeState'
 import type { WorldId } from '../../../types/IWorldState'
@@ -45,6 +46,8 @@ export default abstract class WorldSceneBase extends Phaser.Scene {
   protected inputLocks = new Set<string>()
   protected activeWorld!: WorldId
   protected bounds!: WorldBounds
+  private stopLocalAppearanceWatch?: () => void
+  private localAppearanceSignature = ''
 
   private readonly handleOpenChat = () => store.dispatch(setShowChat(true))
   private readonly handleEscape = () => { void this.network?.returnToPublic() }
@@ -61,12 +64,24 @@ export default abstract class WorldSceneBase extends Phaser.Scene {
     createCharacterAnims(this.anims)
     this.registerKeys()
 
-    const savedAvatar = store.getState().user.authUser?.avatarKey || 'adam'
-    this.myPlayer = this.add.myPlayer(spawn.x, spawn.y, savedAvatar, this.network.mySessionId)
-    this.myPlayer.userId = store.getState().user.authUser?.id || ''
-    const savedCharacterConfig = store.getState().user.authUser?.characterConfig
-    if (savedCharacterConfig) this.myPlayer.setCharacterConfig(savedCharacterConfig)
-    const savedLoadout = store.getState().social.snapshot?.loadout
+    const state = store.getState()
+    const networkPlayer = this.network.getPlayers()?.get(this.network.mySessionId)
+    const appearance = resolvePlayerAppearance({
+      user: state.user.authUser,
+      social: state.social.snapshot,
+      networkPlayer,
+    })
+    this.myPlayer = this.add.myPlayer(spawn.x, spawn.y, appearance.avatarKey, this.network.mySessionId)
+    this.myPlayer.userId = state.user.authUser?.id || networkPlayer?.userId || ''
+    this.syncLocalPlayerAppearance()
+    if (!appearance.characterConfig) {
+      this.stopLocalAppearanceWatch = store.subscribe(() => {
+        if (!this.syncLocalPlayerAppearance()) return
+        this.stopLocalAppearanceWatch?.()
+        this.stopLocalAppearanceWatch = undefined
+      })
+    }
+    const savedLoadout = state.social.snapshot?.loadout
     this.myPlayer.setNameplate(savedLoadout?.nameplateId || 'nameplate-basic')
     this.myPlayer.setTitle(savedLoadout?.titleId)
     this.myPlayer.playerName.setText(store.getState().user.displayName || store.getState().user.authUser?.displayName || '')
@@ -111,6 +126,22 @@ export default abstract class WorldSceneBase extends Phaser.Scene {
     store.dispatch(setWorldMapLoading('READY'))
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupWorld, this)
+  }
+
+  private syncLocalPlayerAppearance(): boolean {
+    if (!this.myPlayer || !this.network) return false
+    const state = store.getState()
+    const appearance = resolvePlayerAppearance({
+      user: state.user.authUser,
+      social: state.social.snapshot,
+      networkPlayer: this.network.getPlayers()?.get(this.network.mySessionId),
+    })
+    const signature = `${appearance.avatarKey}:${JSON.stringify(appearance.characterConfig || null)}`
+    if (signature === this.localAppearanceSignature) return Boolean(appearance.characterConfig)
+    this.localAppearanceSignature = signature
+    if (this.myPlayer.playerTexture !== appearance.avatarKey) this.myPlayer.setPlayerTexture(appearance.avatarKey)
+    if (appearance.characterConfig) this.myPlayer.setCharacterConfig(appearance.characterConfig)
+    return Boolean(appearance.characterConfig)
   }
 
   protected updateWorld(_time: number, _delta: number) {
@@ -237,6 +268,9 @@ export default abstract class WorldSceneBase extends Phaser.Scene {
   }
 
   private cleanupWorld() {
+    this.stopLocalAppearanceWatch?.()
+    this.stopLocalAppearanceWatch = undefined
+    this.localAppearanceSignature = ''
     phaserEvents.off(Event.PLAYER_JOINED, this.handlePlayerJoined, this)
     phaserEvents.off(Event.PLAYER_LEFT, this.handlePlayerLeft, this)
     phaserEvents.off(Event.MY_PLAYER_READY, this.handleMyPlayerReady, this)
