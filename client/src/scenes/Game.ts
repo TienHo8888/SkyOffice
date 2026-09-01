@@ -149,6 +149,10 @@ export default class Game extends Phaser.Scene {
     if (payload?.status === 'LEAVING' || payload?.status === 'JOINING') this.disableKeys('world-transition')
     if (payload?.status === 'READY' || payload?.status === 'ERROR') this.enableKeys('world-transition')
   }
+
+  private isSceneActive() {
+    return this.sys.isActive()
+  }
   constructor() {
     super('game')
   }
@@ -915,6 +919,7 @@ export default class Game extends Phaser.Scene {
 
   // function to add new player to the otherPlayer group
   private handlePlayerJoined(newPlayer: IPlayer, id: string) {
+    if (!this.isSceneActive()) return
     if (!newPlayer || id === this.network.mySessionId || this.otherPlayerMap.has(id)) return
     const texture = newPlayer.anim.split('_')[0] || 'adam'
     const otherPlayer = this.add.otherPlayer(newPlayer.x, newPlayer.y, texture, id, newPlayer.name)
@@ -930,6 +935,7 @@ export default class Game extends Phaser.Scene {
 
   // function to remove the player who left from the otherPlayer group
   private handlePlayerLeft(id: string) {
+    if (!this.isSceneActive()) return
     if (this.otherPlayerMap.has(id)) {
       const otherPlayer = this.otherPlayerMap.get(id)
       if (!otherPlayer) return
@@ -958,13 +964,15 @@ export default class Game extends Phaser.Scene {
 
   // function to update target position upon receiving player updates
   private handlePlayerUpdated(field: string, value: number | string, id: string) {
+    if (!this.isSceneActive()) return
     const otherPlayer = this.otherPlayerMap.get(id)
     otherPlayer?.updateOtherPlayer(field, value)
   }
 
   private handleSocialEmote(payload: SocialEmoteEvent) {
+    if (!this.isSceneActive()) return
     const target = payload.sessionId === this.network?.mySessionId ? this.myPlayer : this.otherPlayerMap.get(payload.sessionId)
-    if (!target) return
+    if (!target?.active || !target.scene?.sys?.isActive()) return
     const labels: Record<string, string> = {
       WAVE: '👋',
       HEART: '💚',
@@ -1009,11 +1017,13 @@ export default class Game extends Phaser.Scene {
   }
 
   private handleChatMessageAdded(playerId: string, content: string) {
+    if (!this.isSceneActive()) return
     const otherPlayer = this.otherPlayerMap.get(playerId)
     otherPlayer?.updateDialogBubble(content)
   }
 
   private handleStudioEvent(payload: { type: string; completion?: any }) {
+    if (!this.isSceneActive()) return
     const completion = payload.completion
     const level = Number(completion?.studioProgress?.level || 1)
     if (payload.type === 'BOSS_DEFEATED') {
@@ -1026,12 +1036,14 @@ export default class Game extends Phaser.Scene {
   }
 
   private handleTagGameUpdated(payload: TagGameSnapshot) {
+    if (!this.isSceneActive()) return
     const taggerSessionId = payload.status === 'PLAYING' || payload.status === 'COUNTDOWN' ? payload.taggerSessionId : ''
     this.myPlayer?.setTagGameTagger(this.myPlayer.playerId === taggerSessionId)
     this.otherPlayerMap.forEach((player, sessionId) => player.setTagGameTagger(sessionId === taggerSessionId))
   }
 
   private handleMiniGameUpdated(payload: MiniGameSnapshot) {
+    if (!this.isSceneActive()) return
     const markerLabels: Record<string, string> = {
       TREASURE: '💎',
       FALLING_OBJECT: '⚠',
@@ -1062,6 +1074,7 @@ export default class Game extends Phaser.Scene {
   }
 
   private handleCombatEvent(payload: CombatEventPayload) {
+    if (!this.isSceneActive()) return
     const definition = COMBAT_WEAPONS.find((candidate) => candidate.id === payload.weapon)
     if (!definition) return
     const duration = payload.weapon === 'WATER_GUN' ? 210 : payload.weapon === 'BAT' ? 150 : 360

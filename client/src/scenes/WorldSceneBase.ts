@@ -208,16 +208,19 @@ export default abstract class WorldSceneBase extends Phaser.Scene {
   }
 
   private handlePlayerUpdated(field: string, value: number | string | boolean, id: string) {
+    if (!this.sys.isActive()) return
     this.otherPlayerMap.get(id)?.updateOtherPlayer(field, value)
   }
 
   private handleChatMessageAdded(playerId: string, content: string) {
+    if (!this.sys.isActive()) return
     this.otherPlayerMap.get(playerId)?.updateDialogBubble(content)
   }
 
   private handleSocialEmote(payload: { sessionId: string; emoteId: string }) {
+    if (!this.sys.isActive()) return
     const target = payload.sessionId === this.network?.mySessionId ? this.myPlayer : this.otherPlayerMap.get(payload.sessionId)
-    if (!target) return
+    if (!target?.active || !target.scene?.sys?.isActive()) return
     const labels: Record<string, string> = { WAVE: '👋', HEART: '💚', CLAP: '👏', COFFEE: '☕', GG: 'GG!', THINK: '🤔' }
     const emote = this.add.text(target.x, target.y - 78, labels[payload.emoteId] || '✦', {
       color: '#f4ffd7', fontFamily: 'DM Mono', fontSize: payload.emoteId === 'GG' ? '12px' : '18px', fontStyle: 'bold', backgroundColor: '#101622dd', padding: { left: 5, right: 5, top: 3, bottom: 3 },
@@ -226,6 +229,7 @@ export default abstract class WorldSceneBase extends Phaser.Scene {
   }
 
   private handlePlayerMovementCorrection(payload: { x?: number; y?: number; anim?: string }) {
+    if (!this.sys.isActive()) return
     if (!this.myPlayer || payload?.x === undefined || payload?.y === undefined) return
     this.myPlayer.setVelocity(0, 0).setPosition(Number(payload.x), Number(payload.y)).setDepth(Number(payload.y))
     this.playerSelector?.setPosition(Number(payload.x), Number(payload.y))

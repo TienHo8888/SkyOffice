@@ -32,6 +32,7 @@ export default class OtherPlayer extends Player {
   }
 
   makeCall(myPlayer: MyPlayer, webRTC: WebRTC) {
+    if (!this.isActiveInScene()) return
     this.myPlayer = myPlayer
     const myPlayerId = myPlayer.playerId
     if (
@@ -49,6 +50,8 @@ export default class OtherPlayer extends Player {
   }
 
   updateOtherPlayer(field: string, value: number | string | boolean) {
+    if (!this.isActiveInScene()) return
+
     switch (field) {
       case 'name':
         if (typeof value === 'string') {
@@ -114,6 +117,7 @@ export default class OtherPlayer extends Player {
 
   /** preUpdate is called every frame for every game object. */
   preUpdate(t: number, dt: number) {
+    if (!this.isActiveInScene()) return
     super.preUpdate(t, dt)
 
     // if Phaser has not updated the canvas (when the game tab is not active) for more than 1 sec
@@ -129,7 +133,9 @@ export default class OtherPlayer extends Player {
 
     this.lastUpdateTimestamp = t
     this.setDepth(this.y) // change player.depth based on player.y
-    const animParts = this.anims.currentAnim.key.split('_')
+    const animationKey = this.anims.currentAnim?.key
+    if (!animationKey) return
+    const animParts = animationKey.split('_')
     const animState = animParts[1]
     if (animState === 'sit') {
       const animDir = animParts[2]

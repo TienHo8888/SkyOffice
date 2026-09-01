@@ -35,6 +35,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   private timeoutID?: number
   private fishingVisual?: FishingActionVisual
   private fishingDirection: AvatarDirection = 'right'
+  private disposed = false
 
   /**
    * The LPC renderer is a separate container because the legacy sprite still
@@ -43,6 +44,8 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
    * physics step behind.
    */
   private syncLpcRenderer = (time: number) => {
+    if (!this.isActiveInScene() || !this.playerContainer?.active) return
+
     // The nameplate/dialog container used to have a second Arcade body and
     // could be resolved a fraction differently from the player's real body.
     // It is presentation-only, so keep it pinned to the final player position
@@ -55,6 +58,10 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
       this.lpcRenderer.update(time)
     }
     this.fishingVisual?.update(time, this.x, this.y, this.depth)
+  }
+
+  protected isActiveInScene() {
+    return !this.disposed && this.active && Boolean(this.scene?.sys?.isActive())
   }
 
   constructor(
@@ -142,6 +149,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   updateDialogBubble(content: string) {
+    if (!this.isActiveInScene() || !this.playerDialogBubble?.active) return
     this.clearDialogBubble()
 
     // preprocessing for dialog bubble text (maximum 70 characters)
@@ -199,6 +207,13 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   setTagGameTagger(isTagger: boolean) {
+    if (
+      !this.isActiveInScene() ||
+      !this.tagGameMarker?.active ||
+      !this.playerName?.active ||
+      !this.playerName.scene?.sys?.isActive() ||
+      !this.playerName.context
+    ) return
     this.tagGameMarker.setVisible(isTagger)
     this.playerName.setColor(isTagger ? '#ff8b8b' : '#f5f8ed')
     if (isTagger) this.setTint(0xffc2a5)
@@ -206,12 +221,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   playAnimation(animationKey: string, ignoreIfPlaying = false) {
+    if (!this.isActiveInScene() || !this.scene.anims.exists(animationKey) || typeof this.anims?.play !== 'function') return this
     this.anims.play(animationKey, ignoreIfPlaying)
     this.lpcRenderer?.setAnimation(animationKey)
     return this
   }
 
   playFishingAnimation(phase: FishingPhase, spot: FishingSpotDefinition) {
+    if (!this.isActiveInScene()) return this
     const dx = spot.x - this.x
     const dy = spot.y - this.y
     this.fishingDirection = Math.abs(dx) >= Math.abs(dy)
@@ -232,6 +249,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   stopFishingAnimation() {
+    if (!this.isActiveInScene()) return this
     this.fishingVisual?.stop()
     const idleKey = `${this.playerTexture}_idle_${this.fishingDirection}`
     if (this.scene?.anims?.exists(idleKey)) this.anims.play(idleKey, true)
@@ -240,6 +258,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   setCharacterConfig(config?: CharacterConfig) {
+    if (!this.isActiveInScene()) return
     this.characterConfig = config
     if (!config) {
       this.setVisible(true)
@@ -255,10 +274,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   preUpdate(time: number, delta: number) {
+    if (!this.isActiveInScene()) return
     super.preUpdate(time, delta)
   }
 
   destroy(fromScene?: boolean) {
+    if (this.disposed) return
+    this.disposed = true
+
     // Phaser may clear the scene reference before UpdateList.shutdown calls
     // destroy(). Destination transitions still need this cleanup to be
     // idempotent, so guard objects that may already have been detached.
@@ -270,6 +293,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   setNameplate(nameplateId: string) {
+    if (!this.isActiveInScene() || !this.playerNameplate?.active || !this.playerNameplate.context) return
     const nameplates: Record<string, { label: string; color: string; background: string }> = {
       'nameplate-neon': { label: 'NEON', color: '#211b42', background: '#ae91ff' },
       'nameplate-champion': { label: 'CHAMPION', color: '#392715', background: '#ffb86c' },
@@ -284,6 +308,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   setTitle(titleId?: string) {
+    if (!this.isActiveInScene() || !this.playerTitle?.active || !this.playerTitle.context) return
     const title = getSocialTitle(titleId)
     this.playerTitle.setVisible(Boolean(title))
     if (!title) {
@@ -298,6 +323,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   protected refreshLabelLayout() {
+    if (!this.isActiveInScene()) return
     this.playerName.setY(-4)
     let nextLabelBottom = this.playerName.y - this.playerName.height - 2
 
@@ -331,6 +357,7 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
 
   private clearDialogBubble() {
     clearTimeout(this.timeoutID)
+    if (!this.playerDialogBubble?.active) return
     this.playerDialogBubble.removeAll(true)
   }
 }
