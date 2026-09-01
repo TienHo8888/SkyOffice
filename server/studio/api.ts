@@ -63,38 +63,7 @@ export function createStudioApi(store: StudioStore = studioStore) {
   const router = express.Router()
   const auth = requireAuth(store)
   const socialActionHits = new Map<string, number[]>()
-  const loginAttempts = new Map<string, { count: number; windowStartedAt: number; blockedUntil: number }>()
-  const loginWindowMs = 15 * 60_000
-  const loginMaxFailures = 10
   const accountPasswordMinimum = process.env.NODE_ENV === 'production' ? 12 : 4
-  const loginKeys = (req: Request, identifier: string) => [`ip:${req.ip}`, `account:${identifier}`]
-  const isLoginBlocked = (req: Request, identifier: string) => {
-    const now = Date.now()
-    return loginKeys(req, identifier).some((key) => {
-      const attempt = loginAttempts.get(key)
-      if (!attempt) return false
-      if (now - attempt.windowStartedAt >= loginWindowMs && attempt.blockedUntil <= now) {
-        loginAttempts.delete(key)
-        return false
-      }
-      return attempt.blockedUntil > now || attempt.count >= loginMaxFailures
-    })
-  }
-  const recordLoginFailure = (req: Request, identifier: string) => {
-    const now = Date.now()
-    loginKeys(req, identifier).forEach((key) => {
-      const previous = loginAttempts.get(key)
-      const attempt = !previous || now - previous.windowStartedAt >= loginWindowMs
-        ? { count: 0, windowStartedAt: now, blockedUntil: 0 }
-        : previous
-      attempt.count += 1
-      if (attempt.count >= loginMaxFailures) attempt.blockedUntil = now + loginWindowMs
-      loginAttempts.set(key, attempt)
-    })
-  }
-  const clearLoginFailures = (req: Request, identifier: string) => {
-    loginKeys(req, identifier).forEach((key) => loginAttempts.delete(key))
-  }
   const socialRateLimit = (action: string, max: number, windowMs = 60_000) => (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const actor = req.studioUser
     const key = `${action}:${actor?.id || req.ip}`
@@ -116,15 +85,12 @@ export function createStudioApi(store: StudioStore = studioStore) {
     const identifier = String(req.body?.identifier || req.body?.email || '').trim().toLowerCase()
     const password = String(req.body?.password || '')
     if (!identifier || password.length < 4) return res.status(400).json({ code: 'INVALID_CREDENTIALS', message: 'Account and password are required.' })
-    if (isLoginBlocked(req, identifier)) return res.status(429).json({ code: 'LOGIN_RATE_LIMITED', message: 'Too many login attempts. Please try again later.' })
     const user = store.getUserByLogin(identifier)
     let passwordValid = false
     try { passwordValid = Boolean(user && verifyPassword(password, user.passwordHash)) } catch { passwordValid = false }
     if (!passwordValid) {
-      recordLoginFailure(req, identifier)
       return res.status(401).json({ code: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' })
     }
-    clearLoginFailures(req, identifier)
     return res.json({ token: createSessionToken(toUser(user)), user: toUser(user) })
   })
 
