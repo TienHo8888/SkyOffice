@@ -41,7 +41,7 @@ export default class MyPlayer extends Player {
   setPlayerTexture(texture: string) {
     this.playerTexture = texture
     this.playAnimation(`${this.playerTexture}_idle_down`, true)
-    phaserEvents.emit(Event.MY_PLAYER_TEXTURE_CHANGE, this.x, this.y, this.anims.currentAnim.key)
+    phaserEvents.emit(Event.MY_PLAYER_TEXTURE_CHANGE, this.x, this.y, this.getCurrentAnimationKey())
   }
 
   handleJoystickMovement(movement: JoystickMovement) {
@@ -55,7 +55,7 @@ export default class MyPlayer extends Player {
     keyR: Phaser.Input.Keyboard.Key,
     network: Network
   ) {
-    if (!cursors) return
+    if (!this.isActiveInScene() || !cursors) return
 
     const item = playerSelector.selectedItem
 
@@ -109,7 +109,7 @@ export default class MyPlayer extends Player {
                 playerSelector.setPosition(0, 0)
               }
               // send new location and anim to server
-              network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+              network.updatePlayer(this.x, this.y, this.getCurrentAnimationKey())
             },
             loop: false,
           })
@@ -155,7 +155,7 @@ export default class MyPlayer extends Player {
         this.playContainerBody.velocity.setLength(speed)
 
         // update animation according to velocity and send new location and anim to server
-        if (vx !== 0 || vy !== 0) network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+        if (vx !== 0 || vy !== 0) network.updatePlayer(this.x, this.y, this.getCurrentAnimationKey())
         if (vx > 0) {
           this.playAnimation(`${this.playerTexture}_run_right`, true)
         } else if (vx < 0) {
@@ -165,14 +165,15 @@ export default class MyPlayer extends Player {
         } else if (vy < 0) {
           this.playAnimation(`${this.playerTexture}_run_up`, true)
         } else {
-          const parts = this.anims.currentAnim.key.split('_')
+          const currentAnimationKey = this.getCurrentAnimationKey()
+          const parts = currentAnimationKey.split('_')
           parts[1] = 'idle'
           const newAnim = parts.join('_')
           // this prevents idle animation keeps getting called
-          if (this.anims.currentAnim.key !== newAnim) {
+          if (currentAnimationKey !== newAnim) {
             this.playAnimation(parts.join('_'), true)
             // send new location and anim to server
-            network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+            network.updatePlayer(this.x, this.y, this.getCurrentAnimationKey())
           }
         }
         break
@@ -180,14 +181,14 @@ export default class MyPlayer extends Player {
       case PlayerBehavior.SITTING:
         // back to idle if player press E while sitting
         if (Phaser.Input.Keyboard.JustDown(keyE)) {
-          const parts = this.anims.currentAnim.key.split('_')
+          const parts = this.getCurrentAnimationKey().split('_')
           parts[1] = 'idle'
           this.playAnimation(parts.join('_'), true)
           this.playerBehavior = PlayerBehavior.IDLE
           this.chairOnSit?.clearDialogBox()
           playerSelector.setPosition(this.x, this.y)
           playerSelector.update(this, cursors)
-          network.updatePlayer(this.x, this.y, this.anims.currentAnim.key)
+          network.updatePlayer(this.x, this.y, this.getCurrentAnimationKey())
         }
         break
     }

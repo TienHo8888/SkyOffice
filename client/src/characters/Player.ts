@@ -64,6 +64,14 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
     return !this.disposed && this.active && Boolean(this.scene?.sys?.isActive())
   }
 
+  protected isAlive() {
+    return !this.disposed && this.active
+  }
+
+  getCurrentAnimationKey() {
+    return this.anims?.currentAnim?.key || `${this.playerTexture}_idle_down`
+  }
+
   constructor(
     scene: Phaser.Scene,
     x: number,
@@ -221,9 +229,19 @@ export default class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   playAnimation(animationKey: string, ignoreIfPlaying = false) {
-    if (!this.isActiveInScene() || !this.scene.anims.exists(animationKey) || typeof this.anims?.play !== 'function') return this
-    this.anims.play(animationKey, ignoreIfPlaying)
-    this.lpcRenderer?.setAnimation(animationKey)
+    // The constructor runs before Phaser marks the scene as active, so this
+    // method only needs the object itself to be alive. Network-driven callers
+    // are guarded by OtherPlayer.updateOtherPlayer and the scene handlers.
+    if (!this.isAlive() || !this.scene?.anims || typeof this.anims?.play !== 'function') return this
+    const fallbackKey = `${this.playerTexture}_idle_down`
+    const nextAnimationKey = this.scene.anims.exists(animationKey)
+      ? animationKey
+      : this.scene.anims.exists(fallbackKey)
+        ? fallbackKey
+        : undefined
+    if (!nextAnimationKey) return this
+    this.anims.play(nextAnimationKey, ignoreIfPlaying)
+    this.lpcRenderer?.setAnimation(nextAnimationKey)
     return this
   }
 
