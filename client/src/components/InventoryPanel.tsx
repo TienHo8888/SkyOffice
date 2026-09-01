@@ -16,7 +16,7 @@ import LpcAvatarPreview from './LpcAvatarPreview'
 const INVENTORY_SLOT_COUNT = 24
 
 type InventoryRarity = CosmeticRarity
-type InventoryItemKind = 'utility' | 'outfit'
+type InventoryItemKind = 'utility' | 'fish' | 'outfit'
 
 interface InventoryItem {
   id: string
@@ -27,6 +27,8 @@ interface InventoryItem {
   quantity: number
   usable: boolean
   tradable: boolean
+  sellable?: boolean
+  sellValue?: number
   kind: InventoryItemKind
   catalogItem?: CosmeticCatalogItem
 }
@@ -40,7 +42,7 @@ const starterItems: InventoryItem[] = [
     rarity: 'COMMON',
     quantity: 3,
     usable: true,
-    tradable: true,
+    tradable: false,
     kind: 'utility',
   },
   {
@@ -51,7 +53,7 @@ const starterItems: InventoryItem[] = [
     rarity: 'RARE',
     quantity: 2,
     usable: true,
-    tradable: true,
+    tradable: false,
     kind: 'utility',
   },
   {
@@ -73,7 +75,7 @@ const starterItems: InventoryItem[] = [
     rarity: 'EPIC',
     quantity: 1,
     usable: false,
-    tradable: true,
+    tradable: false,
     kind: 'utility',
   },
 ]
@@ -136,6 +138,10 @@ function wardrobeIcon(item: CosmeticCatalogItem): string {
   return '👕'
 }
 
+function makeInventoryActionId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+}
+
 export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
   const dispatch = useAppDispatch()
   const token = useAppSelector((state) => state.user.authToken)
@@ -146,6 +152,9 @@ export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
   const [selectedId, setSelectedId] = useState(starterItems[0].id)
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [transactionQuantity, setTransactionQuantity] = useState('1')
+  const [tradeRecipient, setTradeRecipient] = useState('')
+  const [tradeOpen, setTradeOpen] = useState(false)
 
   const ownedOutfits = useMemo<InventoryItem[]>(() => {
     const owned = new Set(social?.ownedCosmetics || [])
@@ -174,7 +183,19 @@ export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
       if (!fish || stack.quantity <= 0) return []
       const rarity = fish.rarity.toUpperCase() as InventoryRarity
       const icon = fish.id === 'moon_koi' ? '🐟' : fish.id === 'leaf_carp' ? '🐠' : '🐡'
-      return [{ id: fish.id, name: fish.id === 'pond_minnow' ? 'Pond Minnow' : fish.id === 'leaf_carp' ? 'Leaf Carp' : 'Moon Koi', description: `Cá bắt được ở Riverbend. Sell value tương lai: ${fish.sellValue} Coin.`, icon, rarity, quantity: stack.quantity, usable: false, tradable: false, kind: 'utility' as const }]
+      return [{
+        id: fish.id,
+        name: fish.id === 'pond_minnow' ? 'Pond Minnow' : fish.id === 'leaf_carp' ? 'Leaf Carp' : 'Moon Koi',
+        description: `Cá bắt được ở Riverbend. Bán được ${fish.sellValue} Coin/con hoặc trao đổi với người chơi khác.`,
+        icon,
+        rarity,
+        quantity: stack.quantity,
+        usable: false,
+        tradable: true,
+        sellable: true,
+        sellValue: fish.sellValue,
+        kind: 'fish' as const,
+      }]
     })
   }, [social?.inventory])
 
@@ -182,6 +203,12 @@ export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
   const occupiedItems = useMemo(() => items.filter((item) => item.quantity > 0), [items])
   const inventorySlotCount = Math.max(INVENTORY_SLOT_COUNT, occupiedItems.length)
   const selectedItem = occupiedItems.find((item) => item.id === selectedId) || occupiedItems[0]
+  const selectedIsFish = selectedItem?.kind === 'fish' && Boolean(selectedItem.sellable)
+  const requestedQuantity = Number.parseInt(transactionQuantity, 10)
+  const selectedQuantity = selectedItem
+    ? Math.max(1, Math.min(selectedItem.quantity, Number.isFinite(requestedQuantity) ? requestedQuantity : 1))
+    : 1
+  const expectedSale = selectedIsFish ? (selectedItem?.sellValue || 0) * selectedQuantity : 0
   const currentOutfitId = social?.loadout.outfitId
   const baseConfig = useMemo(
     () => normalizeCharacterConfig(authUser?.characterConfig, authUser?.avatarKey),
@@ -195,6 +222,12 @@ export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
   useEffect(() => {
     if (!selectedItem && occupiedItems[0]) setSelectedId(occupiedItems[0].id)
   }, [occupiedItems, selectedItem])
+
+  useEffect(() => {
+    setTransactionQuantity('1')
+    setTradeRecipient('')
+    setTradeOpen(false)
+  }, [selectedItem?.id])
 
   useEffect(() => {
     if (!open) return
@@ -219,9 +252,55 @@ export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
     setFeedback(`Đã sử dụng ${selectedItem.name}.`)
   }
 
+  const sellItem = async () => {
+    if (!token || !selectedItem || !selectedIsFish || selectedItem.quantity < 1 || busy) return
+    setBusy(true)
+    setFeedback('')
+    try {
+      const result = await studioApi.sellInventoryItem(token, { itemId: selectedItem.id, quantity: selectedQuantity, saleId: makeInventoryActionId('sell') })
+      if (social) dispatch(setSocialSnapshot({ ...social, progression: result.progression, inventory: result.inventory }))
+      setFeedback(`Đã bán x${selectedQuantity} ${selectedItem.name} · +${result.coinDelta.toLocaleString('vi-VN')} Coin.`)
+      setTransactionQuantity('1')
+    } catch (requestError) {
+      setFeedback(requestError instanceof StudioApiError ? requestError.message : 'Không thể bán cá lúc này.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const tradeItem = () => {
-    if (!selectedItem || selectedItem.kind !== 'utility' || !selectedItem.tradable || selectedItem.quantity < 1) return
-    setFeedback(`${selectedItem.name} có thể giao dịch khi marketplace được mở.`)
+    if (!selectedItem || !selectedIsFish || !selectedItem.tradable || selectedItem.quantity < 1 || busy) return
+    setTradeOpen((openState) => !openState)
+    setFeedback('')
+  }
+
+  const submitTrade = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!token || !selectedItem || !selectedIsFish || !selectedItem.tradable || selectedItem.quantity < 1 || busy) return
+    const recipient = tradeRecipient.trim()
+    if (!recipient) {
+      setFeedback('Nhập username hoặc email của người nhận.')
+      return
+    }
+    setBusy(true)
+    setFeedback('')
+    try {
+      const result = await studioApi.tradeInventoryItem(token, {
+        itemId: selectedItem.id,
+        quantity: selectedQuantity,
+        recipient,
+        tradeId: makeInventoryActionId('trade'),
+      })
+      if (social) dispatch(setSocialSnapshot({ ...social, progression: result.progression, inventory: result.inventory }))
+      setFeedback(`Đã gửi x${selectedQuantity} ${selectedItem.name} cho ${result.recipientName}.`)
+      setTradeRecipient('')
+      setTradeOpen(false)
+      setTransactionQuantity('1')
+    } catch (requestError) {
+      setFeedback(requestError instanceof StudioApiError ? requestError.message : 'Không thể trao đổi cá lúc này.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   const equipLayer = async (slot: AvatarWardrobeSlot) => {
@@ -294,7 +373,7 @@ export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
           <div>
             <span className="game-feature-kicker">PLAYER INVENTORY / ITEM STORAGE</span>
             <h2 id="inventory-title">Túi đồ</h2>
-            <p>Vật phẩm và hơn 600 món LPC đã sở hữu. Trang phục mua ở Cửa hàng có thể mặc riêng từng layer hoặc mặc thành bộ.</p>
+            <p>Vật phẩm, cá câu được và hơn 600 món LPC đã sở hữu. Cá có thể bán lấy Coin hoặc trao đổi trực tiếp.</p>
           </div>
           <button className="game-feature-close" aria-label="Đóng túi đồ" onClick={onClose}>×</button>
         </header>
@@ -332,22 +411,27 @@ export default function InventoryPanel({ open, onClose }: InventoryPanelProps) {
                   return <span key={slot}><b>{LAYER_LABELS[slot]}</b><em>{layerLabel(itemId, slot)}</em><button type="button" disabled={busy || equipped} onClick={() => equipLayer(slot)}>{equipped ? 'ĐANG MẶC' : 'MẶC RIÊNG'}</button></span>
                 })}
               </div>}
-              {selectedIsOutfit ? <div className="inventory-detail-stats"><span>LOẠI <b>{selectedItem.catalogItem?.wardrobe ? 'LAYER' : 'BỘ PHỐI'}</b></span><span>TRADE <b>NO</b></span></div> : <div className="inventory-detail-stats"><span>SỐ LƯỢNG <b>x{selectedItem.quantity}</b></span><span>TRADE <b>{selectedItem.tradable ? 'YES' : 'NO'}</b></span></div>}
+              {selectedIsOutfit ? <div className="inventory-detail-stats"><span>LOẠI <b>{selectedItem.catalogItem?.wardrobe ? 'LAYER' : 'BỘ PHỐI'}</b></span><span>TRADE <b>NO</b></span></div> : <div className="inventory-detail-stats"><span>SỐ LƯỢNG <b>x{selectedItem.quantity}</b></span>{selectedItem.sellable && <span>GIÁ BÁN <b>{selectedItem.sellValue} COIN / CÁ</b></span>}<span>TRAO ĐỔI <b>{selectedItem.tradable ? 'CÓ' : 'KHÔNG'}</b></span></div>}
+              {selectedIsFish && <div className="inventory-quantity-control"><label htmlFor="inventory-transaction-quantity">SỐ LƯỢNG</label><input id="inventory-transaction-quantity" type="number" min="1" max={selectedItem.quantity} inputMode="numeric" value={transactionQuantity} onChange={(event) => setTransactionQuantity(event.target.value)} /><small>+{expectedSale.toLocaleString('vi-VN')} COIN nếu bán</small></div>}
               <div className="inventory-actions">
                 {selectedIsOutfit ? <>
                   <button className="inventory-primary" disabled={busy || selectedIsCurrent} onClick={equipOutfit}>{busy ? 'Đang đồng bộ…' : selectedIsCurrent ? 'Đang mặc' : selectedItem.catalogItem?.wardrobe ? 'Mặc món này' : 'Mặc bộ trang phục'}</button>
                   <button className="inventory-secondary" disabled>Đã sở hữu</button>
+                </> : selectedIsFish ? <>
+                  <button className="inventory-primary" disabled={!token || busy || selectedItem.quantity < 1} onClick={sellItem}>{busy ? 'Đang cập nhật…' : `BÁN x${selectedQuantity} · +${expectedSale.toLocaleString('vi-VN')} COIN`}</button>
+                  <button className="inventory-secondary" disabled={!token || busy || !selectedItem.tradable || selectedItem.quantity < 1} onClick={tradeItem}>{tradeOpen ? 'ĐÓNG TRAO ĐỔI' : 'TRAO ĐỔI'}</button>
                 </> : <>
                   <button className="inventory-primary" disabled={!selectedItem.usable || selectedItem.quantity < 1 || busy} onClick={useItem}>Dùng vật phẩm</button>
-                  <button className="inventory-secondary" disabled={!selectedItem.tradable || selectedItem.quantity < 1 || busy} onClick={tradeItem}>Giao dịch</button>
+                  <button className="inventory-secondary" disabled>Trao đổi</button>
                 </>}
               </div>
+              {tradeOpen && selectedIsFish && <form className="inventory-trade-form" onSubmit={submitTrade}><label htmlFor="inventory-trade-recipient">NGƯỜI NHẬN<input id="inventory-trade-recipient" value={tradeRecipient} onChange={(event) => setTradeRecipient(event.target.value)} placeholder="username hoặc email" autoComplete="off" /></label><div><small>Gửi x{selectedQuantity} {selectedItem.name}</small><button className="inventory-primary" type="submit" disabled={!token || busy || !tradeRecipient.trim()}>{busy ? 'ĐANG GỬI…' : 'GỬI CÁ'}</button></div></form>}
             </> : <div className="inventory-empty-detail"><span>◌</span><strong>Túi đồ đang trống</strong><small>Vật phẩm nhận được sẽ xuất hiện ở đây.</small></div>}
           </aside>
         </div>
 
         {feedback && <div className="game-feature-feedback" role="status" aria-live="polite"><span>✦</span>{feedback}</div>}
-        <footer className="game-feature-footer">Trang phục đã mua được lưu vĩnh viễn · có thể mặc trọn bộ hoặc phối riêng từng layer áo / quần / nón / giày / phụ kiện.</footer>
+        <footer className="game-feature-footer">Cá câu được lưu thành item theo stack · bán lấy Coin hoặc gửi cho người chơi khác từ đây.</footer>
       </section>
     </div>
   )

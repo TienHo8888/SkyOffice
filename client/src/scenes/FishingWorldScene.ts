@@ -1,34 +1,29 @@
 import Phaser from 'phaser'
 import WorldSceneBase, { WorldSceneData } from './WorldSceneBase'
-import { FISHING_MAP_HEIGHT, FISHING_MAP_WIDTH, FISHING_SPOTS, getFishingSpot } from '../../../types/Fishing'
+import { DEFAULT_FISHING_SPOT_ID, FISHING_MAP_HEIGHT, FISHING_MAP_WIDTH, FISHING_SPOTS, FISHING_WATER_BLOCKERS, getFishingSpawnPoint, getFishingSpot } from '../../../types/Fishing'
 import type { FishingPhase } from '../../../types/Fishing'
-import { setNearFishingSpot, setWorldMapLoading } from '../stores/WorldStore'
+import { setNearbyFishingSpot, setWorldMapLoading } from '../stores/WorldStore'
 import store from '../stores'
 import { Event, phaserEvents } from '../events/EventCenter'
 
 const FISHING_BOUNDS = { minX: 48, maxX: FISHING_MAP_WIDTH - 48, minY: 48, maxY: FISHING_MAP_HEIGHT - 48 }
 
-// This is intentionally a Phaser-owned collision layer. The source map is a
-// visual backdrop only; these rectangles are the SkyOffice collision contract
-// and can be replaced by a hand-authored polygon layer without running any
-// Godot scene/script from the reference repository.
+// The source map is a visual backdrop only. Water geometry is shared with the
+// server through FISHING_WATER_BLOCKERS so a rejected network position and a
+// local Arcade collision always agree about where the avatar may stand.
 const FISHING_COLLISION_RECTS = [
   { x: 0, y: 0, width: FISHING_MAP_WIDTH, height: 48 },
   { x: 0, y: FISHING_MAP_HEIGHT - 48, width: FISHING_MAP_WIDTH, height: 48 },
   { x: 0, y: 0, width: 48, height: FISHING_MAP_HEIGHT },
   { x: FISHING_MAP_WIDTH - 48, y: 0, width: 48, height: FISHING_MAP_HEIGHT },
-  // Approximate the largest water channels while leaving the marked pier and
-  // the central path open. Fine-grained collision can be authored later.
-  { x: 420, y: 115, width: 130, height: 80 },
-  { x: 580, y: 250, width: 160, height: 115 },
-  { x: 760, y: 390, width: 150, height: 100 },
-  { x: 910, y: 580, width: 120, height: 170 },
+  ...FISHING_WATER_BLOCKERS,
 ]
 
 export default class FishingWorldScene extends WorldSceneBase {
-  private spotMarker!: Phaser.GameObjects.Graphics
+  private spotMarkers: Phaser.GameObjects.Graphics[] = []
+  private castTargetMarkers: Phaser.GameObjects.Graphics[] = []
   private fishingWalls?: Phaser.Physics.Arcade.StaticGroup
-  private wasNearFishingSpot = false
+  private nearbyFishingSpotId: string | null = null
   private fishingActionActive = false
   private keySpace!: Phaser.Input.Keyboard.Key
 
@@ -53,10 +48,10 @@ export default class FishingWorldScene extends WorldSceneBase {
     map.setDisplaySize(FISHING_MAP_WIDTH, FISHING_MAP_HEIGHT)
     this.createMapWayfinding()
     this.createCollisionLayer()
-    this.initializeWorld(data, 'FISHING', FISHING_BOUNDS, { x: 760, y: 500 })
+    this.initializeWorld(data, 'FISHING', FISHING_BOUNDS, getFishingSpawnPoint(0))
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
-    this.createFishingSpot()
-    this.physics.add.collider(this.myPlayer, this.fishingWalls as Phaser.Physics.Arcade.StaticGroup)
+    this.createFishingSpots()
+    this.physics.add.collider([this.myPlayer, this.myPlayer.playerContainer], this.fishingWalls as Phaser.Physics.Arcade.StaticGroup)
     phaserEvents.on(Event.FISHING_PHASE_CHANGED, this.handleFishingPhase, this)
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupFishing, this)
   }
@@ -66,35 +61,63 @@ export default class FishingWorldScene extends WorldSceneBase {
       this.myPlayer?.setVelocity(0, 0)
       if (Phaser.Input.Keyboard.JustDown(this.keySpace)) phaserEvents.emit(Event.FISHING_REEL_ACTION)
     } else this.updateWorld(time, delta)
-    if (this.spotMarker) this.spotMarker.setAlpha(0.65 + Math.sin(time / 260) * 0.2)
+    const pulse = 0.65 + Math.sin(time / 260) * 0.2
+    this.spotMarkers.forEach((marker) => marker.setAlpha(pulse))
+    this.castTargetMarkers.forEach((marker) => marker.setAlpha(0.35 + Math.sin(time / 320) * 0.12))
   }
 
   protected updateWorldInteraction() {
-    const spot = FISHING_SPOTS[0]
-    const distance = Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, spot.x, spot.y)
-    const near = distance <= spot.interactionRadius
-    if (near !== this.wasNearFishingSpot) {
-      this.wasNearFishingSpot = near
-      store.dispatch(setNearFishingSpot(near))
+    let nearestSpot: typeof FISHING_SPOTS[number] | undefined
+    let nearestDistance = Number.POSITIVE_INFINITY
+    FISHING_SPOTS.forEach((spot) => {
+      const distance = Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, spot.x, spot.y)
+      if (distance < nearestDistance) {
+        nearestSpot = spot
+        nearestDistance = distance
+      }
+    })
+    const nearSpot = nearestSpot && nearestDistance <= nearestSpot.interactionRadius ? nearestSpot : undefined
+    const nextSpotId = nearSpot?.id || null
+    if (nextSpotId !== this.nearbyFishingSpotId) {
+      this.nearbyFishingSpotId = nextSpotId
+      store.dispatch(setNearbyFishingSpot(nextSpotId))
     }
-    if (near) this.showInteractionHint('[E] CÂU CÁ · Riverbend', spot.x, spot.y - 72)
+    if (nearSpot) this.showInteractionHint(`[E] CÂU CÁ · ${nearSpot.label}`, nearSpot.x, nearSpot.y - 72)
     else this.interactionHint.setVisible(false)
   }
 
   protected onWorldInteract() {
-    if (!this.wasNearFishingSpot) return
-    const spot = getFishingSpot('town_pier')
+    const spot = getFishingSpot(this.nearbyFishingSpotId || '')
     if (spot) phaserEvents.emit(Event.FISHING_SPOT_INTERACTION, { spotId: spot.id })
   }
 
-  private createFishingSpot() {
-    const spot = FISHING_SPOTS[0]
-    this.spotMarker = this.add.graphics().setDepth(20)
-    this.spotMarker.lineStyle(3, 0x84b8ff, 0.9).strokeCircle(spot.x, spot.y, 24)
-    this.spotMarker.fillStyle(0x84b8ff, 0.2).fillCircle(spot.x, spot.y, 20)
-    this.add.text(spot.x, spot.y + 32, 'FISHING SPOT · TOWN PIER', {
-      color: '#d9f4ff', fontFamily: 'DM Mono', fontSize: '8px', fontStyle: 'bold', backgroundColor: '#10233dcc', padding: { left: 5, right: 5, top: 3, bottom: 3 },
-    }).setOrigin(0.5).setDepth(21)
+  private createFishingSpots() {
+    const markerColors = [0x84b8ff, 0x6fe0b0, 0xae91ff, 0xffb86c, 0x78d8ff, 0xc8f267, 0xff78c8, 0x9ce8ff]
+    FISHING_SPOTS.forEach((spot, index) => {
+      const color = markerColors[index % markerColors.length]
+      const marker = this.add.graphics().setDepth(20)
+      marker.lineStyle(3, color, 0.9).strokeCircle(spot.x, spot.y, 24)
+      marker.fillStyle(color, 0.2).fillCircle(spot.x, spot.y, 20)
+      marker.fillStyle(0xffffff, 0.75).fillCircle(spot.x - 7, spot.y - 7, 4)
+      marker
+        .setInteractive(new Phaser.Geom.Circle(spot.x, spot.y, 30), Phaser.Geom.Circle.Contains)
+        .on('pointerdown', () => {
+          if (this.nearbyFishingSpotId === spot.id) phaserEvents.emit(Event.FISHING_SPOT_INTERACTION, { spotId: spot.id })
+        })
+      this.spotMarkers.push(marker)
+
+      // A quiet ripple marks the water landing point without turning every
+      // patch of water into an interaction target. The cast animation uses
+      // this exact coordinate as its bobber destination.
+      const castTarget = this.add.graphics().setDepth(-5)
+      castTarget.lineStyle(1, color, 0.36).strokeEllipse(spot.castX, spot.castY, 30, 10)
+      castTarget.fillStyle(color, 0.08).fillEllipse(spot.castX, spot.castY, 18, 6)
+      this.castTargetMarkers.push(castTarget)
+
+      this.add.text(spot.x, spot.y + 32, `FISHING SPOT · ${spot.label}`, {
+        color: index % 2 ? '#d9ffe9' : '#d9f4ff', fontFamily: 'DM Mono', fontSize: '7px', fontStyle: 'bold', backgroundColor: '#10233dcc', padding: { left: 5, right: 5, top: 2, bottom: 2 },
+      }).setOrigin(0.5).setDepth(21)
+    })
   }
 
   private handleFishingPhase(payload: { phase?: FishingPhase; spotId?: string }) {
@@ -104,7 +127,7 @@ export default class FishingWorldScene extends WorldSceneBase {
       this.myPlayer.stopFishingAnimation()
       return
     }
-    const spot = getFishingSpot(payload.spotId || 'town_pier')
+    const spot = getFishingSpot(payload.spotId || DEFAULT_FISHING_SPOT_ID)
     if (!spot) return
     this.fishingActionActive = true
     this.myPlayer.setVelocity(0, 0)
@@ -136,8 +159,10 @@ export default class FishingWorldScene extends WorldSceneBase {
     phaserEvents.off(Event.FISHING_PHASE_CHANGED, this.handleFishingPhase, this)
     this.myPlayer?.stopFishingAnimation()
     this.fishingActionActive = false
-    this.wasNearFishingSpot = false
+    this.nearbyFishingSpotId = null
     this.fishingWalls = undefined
-    store.dispatch(setNearFishingSpot(false))
+    this.spotMarkers = []
+    this.castTargetMarkers = []
+    store.dispatch(setNearbyFishingSpot(null))
   }
 }

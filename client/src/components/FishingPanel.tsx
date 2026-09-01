@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { FISH_DEFINITIONS, FISHING_COOLDOWN_MS, FISHING_DAILY_LIMIT, FISHING_TIMING } from '../../../types/Fishing'
+import { DEFAULT_FISHING_SPOT_ID, FISH_DEFINITIONS, FISHING_BITE_DELAY_MAX_MS, FISHING_BITE_DELAY_MIN_MS, FISHING_COOLDOWN_MS, FISHING_DAILY_LIMIT, FISHING_SPOTS, FISHING_TIMING, getFishingSpot } from '../../../types/Fishing'
 import type { FishingCastState, FishingCatchReceipt, FishingPhase } from '../../../types/Fishing'
 import { Event, phaserEvents } from '../events/EventCenter'
 import { useAppDispatch, useAppSelector } from '../hooks'
@@ -20,7 +20,7 @@ const phaseLabels: Record<FishingPhase, string> = {
 const phaseHints: Record<FishingPhase, string> = {
   IDLE: 'Bấm E hoặc nút Thả câu',
   CASTING: 'Giữ nguyên vị trí',
-  WAITING: 'Chỉ giật khi tín hiệu vàng bật lên',
+  WAITING: 'Phao có thể cắn bất cứ lúc nào trong 5–60 giây',
   NIBBLE: 'Cẩn thận — có thể chỉ là cú nhử',
   BITE: 'E / SPACE / click trước khi thanh thời gian hết',
   REELING: 'Đang xác nhận kết quả từ server',
@@ -41,6 +41,7 @@ export default function FishingPanel() {
   const dispatch = useAppDispatch()
   const worldId = useAppSelector((state) => state.world.worldId)
   const nearFishingSpot = useAppSelector((state) => state.world.nearFishingSpot)
+  const nearFishingSpotId = useAppSelector((state) => state.world.nearFishingSpotId)
   const token = useAppSelector((state) => state.user.authToken)
   const inventory = useAppSelector((state) => state.social.snapshot?.inventory || [])
   const canonicalDailyCount = useAppSelector((state) => state.social.snapshot?.fishingDailyCount || 0)
@@ -55,6 +56,9 @@ export default function FishingPanel() {
   const timers = useRef<number[]>([])
   const phaseRef = useRef<FishingPhase>('IDLE')
   const requestIdRef = useRef('')
+  const activeSpotIdRef = useRef(DEFAULT_FISHING_SPOT_ID)
+  const activeSpotId = nearFishingSpotId || DEFAULT_FISHING_SPOT_ID
+  const activeSpot = getFishingSpot(activeSpotId) || FISHING_SPOTS[0]
 
   const clearTimers = useCallback(() => {
     timers.current.forEach((timer) => window.clearTimeout(timer))
@@ -67,7 +71,7 @@ export default function FishingPanel() {
     return timer
   }, [])
 
-  const transitionPhase = useCallback((nextPhase: FishingPhase, spotId = 'town_pier') => {
+  const transitionPhase = useCallback((nextPhase: FishingPhase, spotId = DEFAULT_FISHING_SPOT_ID) => {
     phaseRef.current = nextPhase
     setPhase(nextPhase)
     phaserEvents.emit(Event.FISHING_PHASE_CHANGED, { phase: nextPhase, spotId })
@@ -78,7 +82,7 @@ export default function FishingPanel() {
     setRequestId(nextRequestId)
   }, [])
 
-  const startCast = useCallback((spotId = 'town_pier') => {
+  const startCast = useCallback((spotId = activeSpotId) => {
     if (!nearFishingSpot || phaseRef.current !== 'IDLE') return
     if (dailyCount >= FISHING_DAILY_LIMIT) {
       setError(`Hôm nay bạn đã câu đủ ${FISHING_DAILY_LIMIT} con.`)
@@ -86,6 +90,7 @@ export default function FishingPanel() {
     }
     clearTimers()
     const nextRequestId = makeRequestId()
+    activeSpotIdRef.current = spotId
     setActiveRequest(nextRequestId)
     setError('')
     setLastCatch(null)
@@ -95,24 +100,24 @@ export default function FishingPanel() {
     schedule(() => {
       if (phaseRef.current === 'CASTING') transitionPhase('WAITING', spotId)
     }, FISHING_TIMING.castDelaySeconds * 1000)
-  }, [clearTimers, dailyCount, nearFishingSpot, schedule, setActiveRequest, transitionPhase])
+  }, [activeSpotId, clearTimers, dailyCount, nearFishingSpot, schedule, setActiveRequest, transitionPhase])
 
-  const reel = useCallback((spotId = 'town_pier') => {
+  const reel = useCallback((spotId = activeSpotIdRef.current) => {
     if (!requestIdRef.current || !['WAITING', 'NIBBLE', 'BITE'].includes(phaseRef.current)) return
     clearTimers()
     transitionPhase('REELING', spotId)
     getActiveWorldNetwork()?.claimFishingCatch(spotId, requestIdRef.current)
   }, [clearTimers, transitionPhase])
 
-  const performAction = useCallback((spotId = 'town_pier') => {
+  const performAction = useCallback((spotId = activeSpotId) => {
     if (phaseRef.current === 'IDLE') startCast(spotId)
     else reel(spotId)
   }, [reel, startCast])
 
   useEffect(() => {
     if (worldId !== 'FISHING') return
-    const handleSpotInteraction = (payload?: { spotId?: string }) => performAction(payload?.spotId || 'town_pier')
-    const handleReelAction = () => reel('town_pier')
+    const handleSpotInteraction = (payload?: { spotId?: string }) => performAction(payload?.spotId || activeSpotId)
+    const handleReelAction = () => reel()
     const handleCastState = (payload: FishingCastState) => {
       if (!payload?.requestId || payload.requestId !== requestIdRef.current) return
       if (payload.state === 'CASTED') return
@@ -178,11 +183,11 @@ export default function FishingPanel() {
       phaserEvents.off(Event.FISHING_CATCH_RESULT, handleCatchResult)
       phaserEvents.off(Event.FISHING_CATCH_ERROR, handleCatchError)
     }
-  }, [clearTimers, dispatch, performAction, reel, schedule, setActiveRequest, token, transitionPhase, worldId])
+  }, [activeSpotId, clearTimers, dispatch, performAction, reel, schedule, setActiveRequest, token, transitionPhase, worldId])
 
   useEffect(() => () => {
     clearTimers()
-    phaserEvents.emit(Event.FISHING_PHASE_CHANGED, { phase: 'IDLE', spotId: 'town_pier' })
+    phaserEvents.emit(Event.FISHING_PHASE_CHANGED, { phase: 'IDLE', spotId: DEFAULT_FISHING_SPOT_ID })
   }, [clearTimers])
 
   useEffect(() => {
@@ -190,6 +195,7 @@ export default function FishingPanel() {
     clearTimers()
     phaseRef.current = 'IDLE'
     requestIdRef.current = ''
+    activeSpotIdRef.current = DEFAULT_FISHING_SPOT_ID
     setPhase('IDLE')
     setRequestId('')
     setLastCatch(null)
@@ -202,11 +208,12 @@ export default function FishingPanel() {
 
   if (worldId !== 'FISHING') return null
 
-  const fishQuantity = inventory.reduce((total, stack) => total + (stack.itemId.startsWith('pond_') || stack.itemId.startsWith('leaf_') || stack.itemId.startsWith('moon_') ? stack.quantity : 0), 0)
+  const fishIds = new Set(FISH_DEFINITIONS.map((definition) => definition.id))
+  const fishQuantity = inventory.reduce((total, stack) => total + (fishIds.has(stack.itemId) ? stack.quantity : 0), 0)
   const fish = lastCatch ? FISH_DEFINITIONS.find((definition) => definition.id === lastCatch.fishId) : undefined
   const canAct = nearFishingSpot && dailyCount < FISHING_DAILY_LIMIT && (phase === 'IDLE' || phase === 'WAITING' || phase === 'NIBBLE' || phase === 'BITE')
   const actionLabel = phase === 'IDLE'
-    ? nearFishingSpot ? '🎣 THẢ CÂU · E' : 'TỚI TOWN PIER'
+    ? nearFishingSpot ? `🎣 THẢ CÂU · ${activeSpot.label}` : `TỚI ${activeSpot.label}`
     : phase === 'BITE'
       ? '⚡ GIẬT CẦN NGAY!'
       : phase === 'WAITING' || phase === 'NIBBLE'
@@ -219,12 +226,12 @@ export default function FishingPanel() {
         <div className="fishing-quickbar-signal">
           <span className="fishing-quickbar-bobber" aria-hidden="true" />
           <div>
-            <small>RIVERBEND · {dailyCount}/{FISHING_DAILY_LIMIT} · BAG {fishQuantity}</small>
-            <strong>{nearFishingSpot || phase !== 'IDLE' ? phaseLabels[phase] : 'Tìm vòng sáng Town Pier'}</strong>
-            <em>{nearFishingSpot || phase !== 'IDLE' ? phaseHints[phase] : 'Đi tới mép nước để bắt đầu'}</em>
+            <small>RIVERBEND · {dailyCount}/{FISHING_DAILY_LIMIT} · BAG {fishQuantity} · {activeSpot.label}</small>
+            <strong>{nearFishingSpot || phase !== 'IDLE' ? phaseLabels[phase] : `Tìm vòng sáng ${activeSpot.label}`}</strong>
+            <em>{nearFishingSpot || phase !== 'IDLE' ? phaseHints[phase] : `Đi tới mép nước để bắt đầu · ${FISHING_BITE_DELAY_MIN_MS / 1000}–${FISHING_BITE_DELAY_MAX_MS / 1000}s chờ cá`}</em>
           </div>
         </div>
-        <button className={`fishing-action-button is-${phase.toLowerCase()}`} disabled={!canAct} aria-busy={phase === 'CASTING' || phase === 'REELING'} onClick={() => performAction('town_pier')}>
+        <button className={`fishing-action-button is-${phase.toLowerCase()}`} disabled={!canAct} aria-busy={phase === 'CASTING' || phase === 'REELING'} onClick={() => performAction(activeSpotId)}>
           {actionLabel}
         </button>
         {phase === 'BITE' && <div className="fishing-reaction-window" key={`${requestId}-${biteSequence}`} style={{ '--fishing-window': `${biteWindowMs}ms` } as React.CSSProperties}><i /></div>}

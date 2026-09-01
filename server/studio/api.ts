@@ -281,6 +281,29 @@ export function createStudioApi(store: StudioStore = studioStore) {
     } catch (error) { return sendError(res, error) }
   })
 
+  router.post('/social/inventory/sell', auth, socialRateLimit('inventory-sell', 20), (req: AuthenticatedRequest, res) => {
+    try {
+      const actor = currentUser(req)
+      const itemId = String(req.body?.itemId || '').trim()
+      const quantity = Number(req.body?.quantity)
+      const saleId = String(req.body?.saleId || '')
+      return res.json(store.sellInventoryItem(actor.studioId, actor.id, itemId, quantity, saleId))
+    } catch (error) { return sendError(res, error) }
+  })
+
+  router.post('/social/inventory/trade', auth, socialRateLimit('inventory-trade', 20), (req: AuthenticatedRequest, res) => {
+    try {
+      const actor = currentUser(req)
+      const recipientIdentifier = String(req.body?.recipientId || req.body?.recipient || '').trim()
+      const recipient = store.getUserByLogin(recipientIdentifier) || store.getUserById(recipientIdentifier)
+      if (!recipient || recipient.studioId !== actor.studioId) throw new DomainError('RECIPIENT_NOT_FOUND', 'Không tìm thấy người nhận trong studio.')
+      const itemId = String(req.body?.itemId || '').trim()
+      const quantity = Number(req.body?.quantity)
+      const tradeId = String(req.body?.tradeId || '')
+      return res.json(store.transferInventoryItem(actor.studioId, actor.id, recipient.id, itemId, quantity, tradeId))
+    } catch (error) { return sendError(res, error) }
+  })
+
   router.get('/social/catalog', auth, (_req: AuthenticatedRequest, res) => res.json(store.getSocialCatalog()))
 
   router.post('/social/catalog/:itemId/purchase', auth, socialRateLimit('purchase', 20), (req: AuthenticatedRequest, res) => {

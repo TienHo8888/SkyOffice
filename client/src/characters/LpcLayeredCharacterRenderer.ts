@@ -152,8 +152,13 @@ export default class LpcLayeredCharacterRenderer {
   }
 
   private syncFrame(frame: number) {
+    // Scene shutdown can dispose the child sprites before the scene emits its
+    // final fishing cleanup event. Ignore late animation updates instead of
+    // calling setTexture on a detached Phaser object.
+    if (!this.container.active || !this.scene?.sys?.isActive()) return
     this.lastFrame = frame
     this.layers.forEach((layer) => {
+      if (!layer.sprite.active || !layer.sprite.scene?.sys?.isActive()) return
       const path = layer.item
         ? getAvatarAssetPath(layer.item, this.config.bodyProfile, this.animation)
         : LPC_SHADOW_ASSETS[this.animation]

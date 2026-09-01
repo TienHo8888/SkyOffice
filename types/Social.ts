@@ -167,6 +167,29 @@ export interface SocialProgression {
   gameXpEarnedToday: number
 }
 
+/** Result of selling a stack from the server-owned player inventory. */
+export interface InventorySaleReceipt {
+  saleId: string
+  itemId: string
+  quantity: number
+  quantityAfter: number
+  coinDelta: number
+  progression: SocialProgression
+  inventory: InventoryStack[]
+  duplicate?: boolean
+}
+
+/** Result of sending a server-owned inventory item to another studio member. */
+export interface InventoryTradeReceipt {
+  tradeId: string
+  itemId: string
+  quantity: number
+  recipientName: string
+  progression: SocialProgression
+  inventory: InventoryStack[]
+  duplicate?: boolean
+}
+
 export interface CosmeticCatalogItem {
   id: string
   name: string

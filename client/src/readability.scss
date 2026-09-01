@@ -936,6 +936,11 @@
 
 #root .store-panel .store-outfit-card {
   min-height: 0;
+  cursor: pointer;
+}
+
+#root .store-panel .store-outfit-card:focus-within {
+  box-shadow: inset 0 0 0 1px rgba(255,224,138,.62), 0 0 15px rgba(255,184,108,.12);
 }
 
 #root .store-panel .store-outfit-select {
@@ -3792,4 +3797,615 @@
   #root .fishing-action-button { min-height: 36px; }
   #root .world-panel-copy { font-size: 12px; }
   #root .world-transition-error { top: 10px; width: calc(100vw - 20px); }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mobile play-space density pass                                             */
+/* -------------------------------------------------------------------------- */
+
+/* The map is the primary surface on a phone. Keep the persistent controls
+ * compact, reserve the right rail for actions, and leave modal panels readable
+ * when they are intentionally opened. This block comes last so it wins over
+ * the earlier readability minimums without changing desktop sizing. */
+@media (max-width: 680px) {
+  #root .player-hud {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    width: min(270px, calc(100vw - 96px));
+    min-height: 0;
+    gap: 7px;
+    padding: 6px 8px 6px 6px;
+    border-radius: 9px;
+  }
+
+  #root .player-hud-avatar {
+    width: 44px;
+    height: 49px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview {
+    width: 44px;
+    height: 49px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview canvas {
+    width: 49px;
+    height: 49px;
+  }
+
+  #root .player-hud-avatar > span {
+    right: -6px;
+    bottom: -5px;
+    padding: 2px 3px;
+    font-size: 6px;
+  }
+
+  #root .player-hud-head,
+  #root .player-hud-stats {
+    gap: 5px;
+  }
+
+  #root .player-hud-head > div {
+    min-width: 0;
+  }
+
+  #root .player-hud-kicker {
+    font-size: 8px;
+    letter-spacing: .55px;
+  }
+
+  #root .player-hud-head strong {
+    margin-top: 2px;
+    font-size: 12px;
+  }
+
+  #root .player-hud-head > small {
+    max-width: 96px;
+    font-size: 8px;
+  }
+
+  #root .player-hud-stats {
+    margin-top: 4px;
+  }
+
+  #root .player-hud-coin {
+    font-size: 12px;
+  }
+
+  #root .player-hud-coin small,
+  #root .player-hud-xp {
+    font-size: 8px;
+  }
+
+  #root .player-hud-progress {
+    height: 3px;
+    margin-top: 4px;
+  }
+
+  #root .player-hud-account-actions {
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  /* The shortcut is useful on desktop but only adds a second label on a
+   * phone. Keep the logout button itself visible and keyboard accessible. */
+  #root .player-hud-shortcut {
+    display: none;
+  }
+
+  #root .player-hud-logout {
+    padding: 3px 5px;
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  #root .player-hud-work {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 5px;
+    margin-top: 5px;
+    padding-top: 4px;
+  }
+
+  #root .player-hud-work > span {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #root .player-hud-work > small {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #root .player-hud-work > span,
+  #root .player-hud-work > small {
+    font-size: 8px;
+    line-height: 1.15;
+  }
+
+  #root .player-hud-work > small {
+    max-width: 96px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #root .player-hud-work button {
+    min-height: 27px;
+    padding: 4px 5px;
+    font-size: 8px;
+    line-height: 1.1;
+  }
+
+  #root .player-hud-work > button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    width: auto;
+    min-width: 72px;
+    max-width: 88px;
+  }
+
+  #root .player-hud-destination-actions {
+    grid-row: 3;
+    gap: 3px;
+  }
+
+  #root .player-hud-level-up {
+    gap: 5px;
+    padding: 5px 7px;
+  }
+
+  #root .helper-button-backdrop {
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+    gap: 4px;
+  }
+
+  #root .helper-button-backdrop .wrapper-group {
+    gap: 4px;
+  }
+
+  #root .helper-button-backdrop .MuiFab-root,
+  #root .helper-button-group .MuiFab-root,
+  #root .helper-button-group.is-stacked .MuiFab-root {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  #root .helper-button-backdrop .MuiSvgIcon-root {
+    font-size: 20px;
+  }
+
+  #root .helper-button-group.is-stacked {
+    gap: 4px;
+    max-height: calc(100dvh - 16px);
+    padding: 3px;
+  }
+
+  #root [aria-label="showChat"].MuiFab-root {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  #root [aria-label="showChat"].MuiFab-root .MuiSvgIcon-root {
+    font-size: 22px;
+  }
+
+  #root .game-chat-dock {
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    min-height: 36px;
+    gap: 5px;
+    padding: 5px 7px;
+    font-size: 9px;
+  }
+
+  #root .game-chat-dock > span {
+    font-size: 15px;
+  }
+
+  #root .game-chat-dock > b {
+    min-width: 16px;
+    height: 16px;
+    font-size: 8px;
+  }
+
+  #root .game-channel-chat {
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: min(330px, calc(100vw - 16px));
+    height: min(300px, 46dvh);
+  }
+
+  #root .game-channel-chat article p,
+  #root .game-channel-chat input {
+    font-size: 12px;
+  }
+
+  #root .new-player-guide {
+    top: 166px;
+    left: max(8px, env(safe-area-inset-left));
+    width: min(260px, calc(100vw - 96px));
+    max-height: min(430px, calc(100dvh - 190px));
+  }
+
+  #root .guide-reopen {
+    top: 166px;
+    left: max(8px, env(safe-area-inset-left));
+    max-width: calc(100vw - 96px);
+    gap: 5px;
+    padding: 5px 7px;
+    font-size: 8px;
+    line-height: 1.1;
+  }
+
+  #root .guide-reopen span {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    font-size: 10px;
+  }
+
+  #root .work-closed-dock {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: calc(62px + env(safe-area-inset-bottom));
+    width: min(200px, calc(100vw - 104px));
+    min-width: 0;
+    grid-template-columns: 24px minmax(0, 1fr) 16px;
+    column-gap: 5px;
+    padding: 6px 7px 6px 6px;
+    border-radius: 7px;
+  }
+
+  #root .work-closed-dock > span {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+
+  #root .work-closed-dock strong {
+    font-size: 9px;
+  }
+
+  #root .work-closed-dock small {
+    font-size: 8px;
+  }
+
+  #root .work-closed-dock b {
+    font-size: 14px;
+  }
+
+  #root .audio-dock {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    gap: 3px;
+    padding: 3px;
+  }
+
+  #root .audio-dock button {
+    min-width: 38px;
+    height: 32px;
+    min-height: 32px;
+    font-size: 13px;
+  }
+
+  #root .audio-dock button span {
+    font-size: 5px;
+  }
+
+  #root .combat-hotbar {
+    bottom: max(6px, env(safe-area-inset-bottom));
+    left: max(8px, env(safe-area-inset-left));
+    gap: 4px;
+  }
+
+  #root .combat-slots {
+    gap: 2px;
+    padding: 3px;
+  }
+
+  #root .combat-slot {
+    width: 40px;
+    height: 40px;
+  }
+
+  #root .combat-use {
+    width: 44px;
+    height: 44px;
+    padding: 4px;
+  }
+
+  #root .combat-use > span {
+    font-size: 16px;
+  }
+
+  #root .combat-use > b,
+  #root .combat-use > small,
+  #root .combat-slot > i {
+    font-size: 8px;
+  }
+
+  #root .party-dock {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: auto;
+    width: min(300px, calc(100vw - 20px));
+    max-height: min(360px, calc(100dvh - 140px));
+    padding: 9px;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 420px) {
+  #root .player-hud {
+    width: min(250px, calc(100vw - 76px));
+    gap: 5px;
+  }
+
+  #root .player-hud-avatar {
+    width: 40px;
+    height: 45px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview {
+    width: 40px;
+    height: 45px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview canvas {
+    width: 45px;
+    height: 45px;
+  }
+
+  #root .player-hud-head > small {
+    max-width: 70px;
+    font-size: 7px;
+  }
+
+  #root .player-hud-work > small {
+    display: none;
+  }
+
+  #root .player-hud-work > span {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  #root .player-hud-work > button {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 66px;
+    max-width: 78px;
+  }
+
+  #root .player-hud-destination-actions {
+    grid-row: 2;
+  }
+
+  #root .new-player-guide {
+    top: 152px;
+    width: min(248px, calc(100vw - 72px));
+    max-height: min(400px, calc(100dvh - 176px));
+  }
+
+  #root .guide-reopen {
+    top: 152px;
+    max-width: calc(100vw - 72px);
+  }
+
+  #root .helper-button-backdrop .MuiFab-root,
+  #root .helper-button-group .MuiFab-root,
+  #root .helper-button-group.is-stacked .MuiFab-root {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+
+  #root .helper-button-backdrop .MuiSvgIcon-root {
+    font-size: 18px;
+  }
+
+  #root [aria-label="showChat"].MuiFab-root {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  #root [aria-label="showChat"].MuiFab-root .MuiSvgIcon-root {
+    font-size: 20px;
+  }
+
+  #root .work-closed-dock {
+    bottom: calc(118px + env(safe-area-inset-bottom));
+    width: min(188px, calc(100vw - 92px));
+  }
+
+  #root .audio-dock {
+    bottom: calc(66px + env(safe-area-inset-bottom));
+  }
+
+  #root .audio-dock button {
+    min-width: 34px;
+    height: 30px;
+    min-height: 30px;
+    font-size: 12px;
+  }
+
+  #root .combat-slot {
+    width: 36px;
+    height: 36px;
+  }
+
+  #root .combat-use {
+    width: 40px;
+    height: 40px;
+  }
+
+  #root .combat-use > span {
+    font-size: 14px;
+  }
+}
+
+/* Compact persistent HUD: keep only identity, currency/progress and actions
+ * in the always-visible map overlay. Detailed room and salary context stays
+ * in the panels that own those workflows. */
+#root .player-hud {
+  width: min(320px, calc(100vw - 28px));
+  min-height: 0;
+  gap: 8px;
+  padding: 7px 9px 7px 7px;
+}
+
+#root .player-hud-avatar {
+  width: 48px;
+  height: 54px;
+}
+
+#root .player-hud-avatar .lpc-avatar-preview {
+  width: 48px;
+  height: 54px;
+}
+
+#root .player-hud-avatar .lpc-avatar-preview canvas {
+  width: 49px;
+  height: 49px;
+}
+
+#root .player-hud-avatar > span {
+  right: -6px;
+  bottom: -5px;
+  padding: 2px 3px;
+  font-size: 7px;
+}
+
+#root .player-hud-head {
+  min-width: 0;
+  gap: 6px;
+}
+
+#root .player-hud-head > strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#root .player-hud-head > .player-hud-logout {
+  width: 24px;
+  height: 22px;
+  min-width: 24px;
+  min-height: 22px;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+}
+
+#root .player-hud-stats {
+  margin-top: 4px;
+}
+
+#root .player-hud-coin {
+  font-size: 13px;
+}
+
+#root .player-hud-coin small,
+#root .player-hud-xp {
+  font-size: 8px;
+}
+
+#root .player-hud-progress {
+  height: 3px;
+  margin-top: 3px;
+}
+
+#root .player-hud-work {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  margin-top: 5px;
+  padding-top: 4px;
+}
+
+#root .player-hud-work > span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#root .player-hud-work-actions {
+  grid-column: 1;
+  gap: 3px;
+}
+
+#root .player-hud-work-actions button {
+  min-height: 26px;
+  padding: 4px 3px;
+  font-size: 8px;
+  line-height: 1.1;
+}
+
+@media (max-width: 680px) {
+  #root .player-hud {
+    width: min(270px, calc(100vw - 96px));
+    gap: 6px;
+    padding: 6px 8px 6px 6px;
+  }
+
+  #root .player-hud-avatar {
+    width: 44px;
+    height: 49px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview {
+    width: 44px;
+    height: 49px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview canvas {
+    width: 49px;
+    height: 49px;
+  }
+
+  #root .player-hud-work-actions button {
+    min-height: 24px;
+    font-size: 7px;
+  }
+}
+
+@media (max-width: 420px) {
+  #root .player-hud {
+    width: min(250px, calc(100vw - 76px));
+    gap: 5px;
+  }
+
+  #root .player-hud-avatar {
+    width: 40px;
+    height: 45px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview {
+    width: 40px;
+    height: 45px;
+  }
+
+  #root .player-hud-avatar .lpc-avatar-preview canvas {
+    width: 45px;
+    height: 45px;
+  }
+
+  #root .player-hud-head > strong {
+    font-size: 12px;
+  }
+
+  #root .player-hud-work-actions button {
+    min-height: 23px;
+    font-size: 7px;
+  }
 }

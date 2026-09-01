@@ -76,10 +76,10 @@ export default abstract class WorldSceneBase extends Phaser.Scene {
     this.interactionHint = this.add.text(spawn.x, spawn.y - 58, '', {
       color: '#f7ffd9',
       fontFamily: 'DM Mono',
-      fontSize: '10px',
+      fontSize: '9px',
       fontStyle: 'bold',
       backgroundColor: '#101622dd',
-      padding: { left: 6, right: 6, top: 4, bottom: 4 },
+      padding: { left: 5, right: 5, top: 3, bottom: 3 },
     }).setOrigin(0.5).setStroke('#101622', 2).setDepth(7100).setVisible(false)
 
     this.cameras.main.setZoom(2)

@@ -139,21 +139,28 @@ export default class Bootstrap extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => phaserEvents.off(Event.WORLD_JOINED, this.handleWorldJoined, this))
   }
 
+  private stopWorldScene(key: 'game' | 'fishing-world' | 'home-world') {
+    // A scene can still be visible while Phaser reports it as sleeping or
+    // pending shutdown. Stopping only when isActive() is true left the old
+    // fishing canvas visible after returning to the office.
+    if (this.scene.get(key)) this.scene.stop(key)
+  }
+
   private handleWorldJoined(payload: { worldId?: 'PUBLIC' | WorldId; ownerId?: string }) {
     if (!this.preloadComplete || !this.network) return
     const worldId = payload?.worldId || 'PUBLIC'
     this.network.webRTC?.checkPreviousPermission()
     if (worldId === 'FISHING') {
-      if (this.scene.isActive('game')) this.scene.stop('game')
-      if (this.scene.isActive('home-world')) this.scene.stop('home-world')
+      this.stopWorldScene('game')
+      this.stopWorldScene('home-world')
       if (!this.scene.isActive('fishing-world')) this.scene.launch('fishing-world', { network: this.network })
     } else if (worldId === 'HOME') {
-      if (this.scene.isActive('game')) this.scene.stop('game')
-      if (this.scene.isActive('fishing-world')) this.scene.stop('fishing-world')
+      this.stopWorldScene('game')
+      this.stopWorldScene('fishing-world')
       if (!this.scene.isActive('home-world')) this.scene.launch('home-world', { network: this.network })
     } else {
-      if (this.scene.isActive('fishing-world')) this.scene.stop('fishing-world')
-      if (this.scene.isActive('home-world')) this.scene.stop('home-world')
+      this.stopWorldScene('fishing-world')
+      this.stopWorldScene('home-world')
       this.launchGame()
     }
     store.dispatch(setRoomJoined(true))

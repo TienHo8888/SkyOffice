@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import { hashPassword } from './auth'
 import { DomainError, StudioStore } from './store'
-import { FISH_DEFINITIONS, selectWeightedFish } from '../../types/Fishing'
+import { FISH_DEFINITIONS, FISHING_BITE_DELAY_MAX_MS, FISHING_BITE_DELAY_MIN_MS, FISHING_MAP_HEIGHT, FISHING_MAP_WIDTH, FISHING_SPOTS, FISHING_SPAWN_POINTS, FISHING_TIMING, FISHING_WATER_BLOCKERS, getFishingSpawnPoint, isFishingPositionWalkable, selectWeightedFish } from '../../types/Fishing'
 
 function makeStore() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'studio-fishing-test-'))
@@ -23,6 +23,28 @@ const { filePath, store } = makeStore()
 assert.equal(selectWeightedFish(FISH_DEFINITIONS, () => 0).id, 'pond_minnow')
 assert.equal(selectWeightedFish(FISH_DEFINITIONS, () => 0.6).id, 'leaf_carp')
 assert.equal(selectWeightedFish(FISH_DEFINITIONS, () => 0.9).id, 'moon_koi')
+assert.equal(FISHING_BITE_DELAY_MIN_MS, 5_000)
+assert.equal(FISHING_BITE_DELAY_MAX_MS, 60_000)
+assert.equal(FISHING_TIMING.biteDelaySeconds, 5)
+
+assert.equal(FISHING_SPOTS.length, 8)
+assert.equal(new Set(FISHING_SPOTS.map((spot) => spot.id)).size, FISHING_SPOTS.length)
+assert.ok(FISHING_WATER_BLOCKERS.length > 20)
+assert.equal(isFishingPositionWalkable(1140, 500, 0), false, 'a known river position must be blocked')
+assert.equal(isFishingPositionWalkable(1040, 500), true, 'the town pier standing position must stay on the shoreline')
+for (let index = 0; index < FISHING_SPAWN_POINTS.length; index += 1) {
+  const spawn = getFishingSpawnPoint(index)
+  assert.equal(isFishingPositionWalkable(spawn.x, spawn.y), true, `spawn ${index} must stay on the central island`)
+}
+for (const spot of FISHING_SPOTS) {
+  assert.ok(spot.x > 48 && spot.x < FISHING_MAP_WIDTH - 48, `${spot.id} standing position must stay inside the walkable map`)
+  assert.ok(spot.y > 48 && spot.y < FISHING_MAP_HEIGHT - 48, `${spot.id} standing position must stay inside the walkable map`)
+  assert.equal(isFishingPositionWalkable(spot.x, spot.y), true, `${spot.id} standing position must stay out of the water`)
+  assert.ok(spot.castX > 48 && spot.castX < FISHING_MAP_WIDTH - 48, `${spot.id} cast target must stay inside the water map`)
+  assert.ok(spot.castY > 48 && spot.castY < FISHING_MAP_HEIGHT - 48, `${spot.id} cast target must stay inside the water map`)
+  assert.equal(isFishingPositionWalkable(spot.castX, spot.castY, 0), false, `${spot.id} cast target must land in water`)
+  assert.ok(Math.hypot(spot.castX - spot.x, spot.castY - spot.y) >= 64, `${spot.id} cast target must be visibly away from the shoreline`)
+}
 
 const beforeProgression = store.getSocialProgression(studioId, ownerId)
 const first = store.claimFishingCatch({ userId: ownerId, studioId, requestId: 'catch-0001', utcDate: date, random: () => 0 })
@@ -57,6 +79,31 @@ assert.throws(
 )
 assert.equal(store.getInventory(studioId, ownerId).find((stack) => stack.itemId === 'pond_minnow')?.quantity, 8)
 assert.equal(store.getFishingDailyCount(studioId, ownerId, date), 10)
+assert.deepEqual(store.getSocialProgression(studioId, ownerId), beforeProgression)
+
+const sale = store.sellInventoryItem(studioId, ownerId, 'pond_minnow', 2, 'sale-0001')
+assert.equal(sale.itemId, 'pond_minnow')
+assert.equal(sale.quantity, 2)
+assert.equal(sale.quantityAfter, 6)
+assert.equal(sale.coinDelta, 6)
+assert.equal(sale.progression.coinBalance, beforeProgression.coinBalance + 6)
+assert.equal(store.getInventory(studioId, ownerId).find((stack) => stack.itemId === 'pond_minnow')?.quantity, 6)
+
+const saleRetry = store.sellInventoryItem(studioId, ownerId, 'pond_minnow', 2, 'sale-0001')
+assert.equal(saleRetry.duplicate, true)
+assert.equal(saleRetry.coinDelta, sale.coinDelta)
+assert.equal(store.getSocialProgression(studioId, ownerId).coinBalance, beforeProgression.coinBalance + 6)
+
+const itemTrade = store.transferInventoryItem(studioId, ownerId, 'user-demo', 'moon_koi', 1, 'trade-0001')
+assert.equal(itemTrade.itemId, 'moon_koi')
+assert.equal(itemTrade.quantity, 1)
+assert.equal(itemTrade.recipientName, 'Demo Player')
+assert.equal(store.getInventory(studioId, ownerId).some((stack) => stack.itemId === 'moon_koi'), false)
+assert.equal(store.getInventory(studioId, 'user-demo').find((stack) => stack.itemId === 'moon_koi')?.quantity, 1)
+
+const itemTradeRetry = store.transferInventoryItem(studioId, ownerId, 'user-demo', 'moon_koi', 1, 'trade-0001')
+assert.equal(itemTradeRetry.duplicate, true)
+assert.equal(store.getInventory(studioId, 'user-demo').find((stack) => stack.itemId === 'moon_koi')?.quantity, 1)
 
 // Fish metadata is selected from the canonical catalog even when a test or a
 // future caller passes a same-id object with forged rarity/value fields.
@@ -66,13 +113,12 @@ const forgedReceipt = store.claimFishingCatch({ userId: ownerId, studioId, reque
 assert.equal(forgedReceipt.fishId, 'moon_koi')
 assert.equal(forgedReceipt.rarity, 'rare')
 
-// Fishing does not touch the existing Coin/EXP/quest progression and another
-// player receives a separate inventory stack.
-assert.deepEqual(store.getSocialProgression(studioId, ownerId), beforeProgression)
+// Another player receives a separate inventory stack, and selling fish only
+// changes the seller's Coin balance through the explicit sell operation.
 const otherUserCatch = store.claimFishingCatch({ userId: 'user-demo', studioId, requestId: 'other-catch-01', utcDate: date, random: () => 0 })
 assert.equal(otherUserCatch.catchNumber, 1)
-assert.deepEqual(store.getInventory(studioId, 'user-demo'), [{ itemId: 'pond_minnow', quantity: 1 }])
-assert.equal(store.getInventory(studioId, ownerId).find((stack) => stack.itemId === 'pond_minnow')?.quantity, 8)
+assert.deepEqual(store.getInventory(studioId, 'user-demo'), [{ itemId: 'moon_koi', quantity: 1 }, { itemId: 'pond_minnow', quantity: 1 }])
+assert.equal(store.getInventory(studioId, ownerId).find((stack) => stack.itemId === 'pond_minnow')?.quantity, 6)
 
 const reloadedStore = new StudioStore(filePath)
 assert.deepEqual(reloadedStore.getInventory(studioId, ownerId), store.getInventory(studioId, ownerId))
@@ -116,4 +162,4 @@ assert.equal(store.canEnterProperty(studioId, ownerId, stranger.id), true)
 store.blockUser(studioId, ownerId, stranger.id)
 assert.equal(store.canEnterProperty(studioId, ownerId, stranger.id), false)
 
-console.log('Fishing/Home tests passed: weighted catches, private idempotent inventory, UTC daily limit, persistence, 8x6 layout validation and property ACL')
+console.log('Fishing/Home tests passed: weighted catches, idempotent inventory sale/trade, UTC daily limit, persistence, 8x6 layout validation and property ACL')

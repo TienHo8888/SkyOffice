@@ -10,6 +10,7 @@ interface WorldStoreState {
   mapLoading: 'IDLE' | 'LOADING' | 'READY' | 'ERROR'
   worldError: { code: string; message: string } | null
   nearFishingSpot: boolean
+  nearFishingSpotId: string | null
 }
 
 const initialState: WorldStoreState = {
@@ -19,6 +20,7 @@ const initialState: WorldStoreState = {
   mapLoading: 'IDLE',
   worldError: null,
   nearFishingSpot: false,
+  nearFishingSpotId: null,
 }
 
 export const worldSlice = createSlice({
@@ -36,6 +38,10 @@ export const worldSlice = createSlice({
       state.mapLoading = 'LOADING'
       state.worldError = null
       state.nearFishingSpot = false
+      state.nearFishingSpotId = null
+    },
+    setWorldOwner: (state, action: PayloadAction<string>) => {
+      state.ownerId = action.payload
     },
     setWorldMapLoading: (state, action: PayloadAction<WorldStoreState['mapLoading']>) => {
       state.mapLoading = action.payload
@@ -47,10 +53,15 @@ export const worldSlice = createSlice({
     },
     setNearFishingSpot: (state, action: PayloadAction<boolean>) => {
       state.nearFishingSpot = action.payload
+      if (!action.payload) state.nearFishingSpotId = null
+    },
+    setNearbyFishingSpot: (state, action: PayloadAction<string | null>) => {
+      state.nearFishingSpotId = action.payload
+      state.nearFishingSpot = Boolean(action.payload)
     },
   },
 })
 
-export const { setWorldTransition, setActiveWorld, setWorldMapLoading, setWorldError, setNearFishingSpot } = worldSlice.actions
+export const { setWorldTransition, setActiveWorld, setWorldOwner, setWorldMapLoading, setWorldError, setNearFishingSpot, setNearbyFishingSpot } = worldSlice.actions
 
 export default worldSlice.reducer

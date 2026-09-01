@@ -4,7 +4,7 @@ import { randomInt, randomUUID } from 'crypto'
 import { ActivityEvent, CompletionResponse, MemberView, Presence, Project, Quest, ResourceKind, Sprint, SprintBoss, Studio, StudioAvatarKey, StudioProgression, StudioResource, Task, User } from '../../types/Studio'
 import { characterConfigToLegacyAvatar, isCharacterConfig, normalizeCharacterConfig } from '../../types/Avatar'
 import type { AvatarWardrobeSlot, CharacterConfig } from '../../types/Avatar'
-import { AvatarSnapshot, CosmeticCatalogItem, FriendshipView, FurniturePlacement, GameQuest, GameQuestCategory, GameQuestMetric, getSocialTitle, isSocialTitleUnlocked, PropertySnapshot, PublicSocialProfile, SOCIAL_TITLES, SocialGameId, SocialLeaderboardEntry, SocialLoadout, SocialNotification, SocialPeopleSearchEntry, SocialPeopleSnapshot, SocialPresenceView, SocialProgression, SocialReward, SocialRoundParticipantResult, SocialSnapshot, SocialTitleProgress, WalletTransaction } from '../../types/Social'
+import { AvatarSnapshot, CosmeticCatalogItem, FriendshipView, FurniturePlacement, GameQuest, GameQuestCategory, GameQuestMetric, getSocialTitle, InventorySaleReceipt, InventoryTradeReceipt, isSocialTitleUnlocked, PropertySnapshot, PublicSocialProfile, SOCIAL_TITLES, SocialGameId, SocialLeaderboardEntry, SocialLoadout, SocialNotification, SocialPeopleSearchEntry, SocialPeopleSnapshot, SocialPresenceView, SocialProgression, SocialReward, SocialRoundParticipantResult, SocialSnapshot, SocialTitleProgress, WalletTransaction } from '../../types/Social'
 import { CareerTrackProgress, DailySalaryReceipt, WorkActionRecord, WorkCareerId, WorkCertificationResult, WorkDailyStatus, WorkGrade, WorkHistoryRecord, WorkJobDefinition, WorkProgression, WorkRankId, WorkReward, WorkSalaryStatus, WorkSessionStatus, WorkSnapshot } from '../../types/Work'
 import type { FishingCatchReceipt, FishDefinition } from '../../types/Fishing'
 import { FISH_DEFINITIONS, FISHING_DAILY_LIMIT } from '../../types/Fishing'
@@ -1500,6 +1500,144 @@ export class StudioStore {
       createdAt: new Date().toISOString(),
       receiptJson: JSON.stringify(receipt),
     })
+    this.save()
+    return receipt
+  }
+
+  /**
+   * Sells a server-owned fish stack for its canonical catalog value. Fish are
+   * the first inventory items exposed to the economy; starter UI-only items
+   * never reach this method and therefore cannot be forged into Coin.
+   */
+  sellInventoryItem(studioId: string, userId: string, itemId: string, quantity: number, requestedSaleId?: string): InventorySaleReceipt {
+    const seller = this.assertStudioUser(studioId, userId)
+    const fish = FISH_DEFINITIONS.find((definition) => definition.id === itemId)
+    if (!fish) throw new DomainError('INVALID_INVENTORY_ITEM', 'Item này chưa thể bán trong chợ cá.')
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100000) throw new DomainError('INVALID_INVENTORY_QUANTITY', 'Số lượng phải nằm trong khoảng 1 đến 100.000.')
+
+    const saleId = requestedSaleId && /^[a-zA-Z0-9_-]{8,80}$/.test(requestedSaleId) ? requestedSaleId : randomUUID()
+    const idempotencyKey = `inventory:sell:${userId}:${saleId}`
+    const existing = this.state.inventoryTransactions.find((transaction) => transaction.idempotencyKey === idempotencyKey)
+    if (existing?.receiptJson) {
+      const receipt = JSON.parse(existing.receiptJson) as InventorySaleReceipt
+      return { ...receipt, inventory: this.getInventory(studioId, userId), progression: this.socialProgression(userId), duplicate: true }
+    }
+    if (existing) throw new DomainError('INVENTORY_TRANSACTION_INVALID', 'Giao dịch bán trước đó không hợp lệ để thử lại.')
+
+    const stack = this.state.playerInventory.find((item) => item.userId === userId && item.itemId === fish.id)
+    if (!stack || stack.quantity < quantity) throw new DomainError('INSUFFICIENT_ITEM', `Bạn không có đủ ${fish.id} để bán.`, 409)
+
+    const coinValue = fish.sellValue * quantity
+    const wallet = this.applyWalletDelta(userId, coinValue, 'FISHING_SELL', saleId, `wallet:${idempotencyKey}`, { itemId: fish.id, quantity, sellValue: fish.sellValue })
+    stack.quantity -= quantity
+    stack.updatedAt = new Date().toISOString()
+    const quantityAfter = stack.quantity
+    const receipt: InventorySaleReceipt = {
+      saleId,
+      itemId: fish.id,
+      quantity,
+      quantityAfter,
+      coinDelta: wallet.duplicate ? 0 : coinValue,
+      progression: this.socialProgression(userId),
+      inventory: this.getInventory(studioId, userId),
+    }
+    this.state.inventoryTransactions.push({
+      id: randomUUID(),
+      userId,
+      idempotencyKey,
+      itemId: fish.id,
+      delta: -quantity,
+      metadataJson: JSON.stringify({ type: 'FISHING_SELL', saleId, quantity, sellValue: fish.sellValue }),
+      createdAt: new Date().toISOString(),
+      receiptJson: JSON.stringify(receipt),
+    })
+    this.addActivity(studioId, 'SOCIAL_REWARD', userId, `${seller.displayName} sold ${quantity} ${fish.id}.`, { saleId, itemId: fish.id, quantity, coins: receipt.coinDelta })
+    this.save()
+    return receipt
+  }
+
+  /**
+   * Transfers fish directly between two members of the same studio. The two
+   * inventory ledger rows make retries safe even if a process stops between
+   * the sender and recipient side of the mutation.
+   */
+  transferInventoryItem(studioId: string, senderId: string, recipientId: string, itemId: string, quantity: number, requestedTradeId?: string): InventoryTradeReceipt {
+    const sender = this.assertStudioUser(studioId, senderId)
+    const recipient = this.assertStudioUser(studioId, recipientId)
+    if (senderId === recipientId) throw new DomainError('INVALID_TRADE', 'Bạn không thể trao đổi với chính mình.')
+    const fish = FISH_DEFINITIONS.find((definition) => definition.id === itemId)
+    if (!fish) throw new DomainError('INVALID_INVENTORY_ITEM', 'Item này chưa thể trao đổi.')
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100000) throw new DomainError('INVALID_INVENTORY_QUANTITY', 'Số lượng phải nằm trong khoảng 1 đến 100.000.')
+
+    const tradeId = requestedTradeId && /^[a-zA-Z0-9_-]{8,80}$/.test(requestedTradeId) ? requestedTradeId : randomUUID()
+    const senderKey = `inventory:trade:${tradeId}:sender`
+    const recipientKey = `inventory:trade:${tradeId}:recipient`
+    const existingSender = this.state.inventoryTransactions.find((transaction) => transaction.idempotencyKey === senderKey)
+    const existingRecipient = this.state.inventoryTransactions.find((transaction) => transaction.idempotencyKey === recipientKey)
+
+    if (existingSender && existingRecipient) {
+      const savedReceipt = existingSender.receiptJson ? JSON.parse(existingSender.receiptJson) as InventoryTradeReceipt : undefined
+      const receipt: InventoryTradeReceipt = savedReceipt || {
+        tradeId,
+        itemId: fish.id,
+        quantity,
+        recipientName: recipient.displayName,
+        progression: this.socialProgression(senderId),
+        inventory: this.getInventory(studioId, senderId),
+      }
+      return { ...receipt, inventory: this.getInventory(studioId, senderId), progression: this.socialProgression(senderId), duplicate: true }
+    }
+
+    const senderStack = this.state.playerInventory.find((item) => item.userId === senderId && item.itemId === fish.id)
+    if (!existingSender && (!senderStack || senderStack.quantity < quantity)) throw new DomainError('INSUFFICIENT_ITEM', `Bạn không có đủ ${fish.id} để trao đổi.`, 409)
+
+    if (!existingSender && senderStack) {
+      senderStack.quantity -= quantity
+      senderStack.updatedAt = new Date().toISOString()
+      this.state.inventoryTransactions.push({
+        id: randomUUID(),
+        userId: senderId,
+        idempotencyKey: senderKey,
+        itemId: fish.id,
+        delta: -quantity,
+        metadataJson: JSON.stringify({ type: 'P2P_ITEM_TRADE', tradeId, quantity, recipientId }),
+        createdAt: new Date().toISOString(),
+      })
+    }
+
+    if (!existingRecipient) {
+      const recipientStack = this.state.playerInventory.find((item) => item.userId === recipientId && item.itemId === fish.id)
+      if (recipientStack) {
+        recipientStack.quantity += quantity
+        recipientStack.updatedAt = new Date().toISOString()
+      } else {
+        this.state.playerInventory.push({ userId: recipientId, itemId: fish.id, quantity, updatedAt: new Date().toISOString() })
+      }
+      this.state.inventoryTransactions.push({
+        id: randomUUID(),
+        userId: recipientId,
+        idempotencyKey: recipientKey,
+        itemId: fish.id,
+        delta: quantity,
+        metadataJson: JSON.stringify({ type: 'P2P_ITEM_TRADE', tradeId, quantity, senderId }),
+        createdAt: new Date().toISOString(),
+      })
+    }
+
+    const receipt: InventoryTradeReceipt = {
+      tradeId,
+      itemId: fish.id,
+      quantity,
+      recipientName: recipient.displayName,
+      progression: this.socialProgression(senderId),
+      inventory: this.getInventory(studioId, senderId),
+    }
+    const senderTransaction = this.state.inventoryTransactions.find((transaction) => transaction.idempotencyKey === senderKey)
+    const recipientTransaction = this.state.inventoryTransactions.find((transaction) => transaction.idempotencyKey === recipientKey)
+    if (senderTransaction) senderTransaction.receiptJson = JSON.stringify(receipt)
+    if (recipientTransaction) recipientTransaction.receiptJson = JSON.stringify(receipt)
+    this.addActivity(studioId, 'SOCIAL_REWARD', senderId, `${sender.displayName} sent ${quantity} ${fish.id} to ${recipient.displayName}.`, { tradeId, itemId: fish.id, quantity, recipientId })
+    recordSocialMetric('social_trade', { senderId, recipientId, itemId: fish.id, quantity, tradeId, duplicate: false })
     this.save()
     return receipt
   }

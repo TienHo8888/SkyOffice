@@ -4,6 +4,20 @@ export const STUDIO_GAMES_WING_ORIGIN_X = 1280
 export const STUDIO_GAMES_WING_WIDTH = 768
 export const STUDIO_GAMES_WING_HEIGHT = 896
 
+/**
+ * The east-side office exit is deliberately kept as a small, collision-free
+ * plaza. Destination portals live here instead of inside the busy Commons so
+ * they remain visible and reachable even when the lobby has furniture or
+ * several players around the spawn point.
+ */
+export const STUDIO_DESTINATION_EXIT = {
+  x: 960,
+  y: 208,
+  width: 336,
+  height: 80,
+  centerY: 248,
+} as const
+
 export type StudioRoomId = 'LOBBY' | 'DESIGN' | 'ART' | 'DEVELOPMENT' | 'GAME_LOUNGE' | 'QA' | 'MEETING' | 'ARCADE' | 'CARD_ROOM'
 
 export interface StudioRoomZone {
@@ -79,8 +93,24 @@ export interface StudioWorldPortal {
 
 /** Entry points are part of the main map only; destination scenes own their exits. */
 export const studioWorldPortals: readonly StudioWorldPortal[] = [
-  { id: 'fishing-portal', destination: 'FISHING', label: 'FISHING · RIVERBEND', x: 820, y: 470, interactionRadius: 70, color: 0x84b8ff },
-  { id: 'home-portal', destination: 'HOME', label: 'MY HOME', x: 720, y: 470, interactionRadius: 70, color: 0xae91ff },
+  {
+    id: 'fishing-portal',
+    destination: 'FISHING',
+    label: 'FISHING · RIVERBEND',
+    x: STUDIO_DESTINATION_EXIT.x + 88,
+    y: STUDIO_DESTINATION_EXIT.centerY,
+    interactionRadius: 54,
+    color: 0x84b8ff,
+  },
+  {
+    id: 'home-portal',
+    destination: 'HOME',
+    label: 'MY HOME',
+    x: STUDIO_DESTINATION_EXIT.x + 248,
+    y: STUDIO_DESTINATION_EXIT.centerY,
+    interactionRadius: 54,
+    color: 0xae91ff,
+  },
 ]
 
 export const studioRoomZones: StudioRoomZone[] = [

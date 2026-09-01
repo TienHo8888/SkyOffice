@@ -1,6 +1,6 @@
 import { AuthSession, CompletionResponse, StudioAvatarKey, StudioResource, StudioSnapshot, Task, User } from '../../../types/Studio'
 import type { CharacterConfig } from '../../../types/Avatar'
-import { CosmeticCatalogItem, FurniturePlacement, FriendshipView, GameQuest, PropertySnapshot, PublicSocialProfile, SocialLeaderboardEntry, SocialPeopleSearchEntry, SocialPeopleSnapshot, SocialLoadout, SocialReward, SocialSnapshot } from '../../../types/Social'
+import { CosmeticCatalogItem, FurniturePlacement, FriendshipView, GameQuest, InventorySaleReceipt, InventoryTradeReceipt, PropertySnapshot, PublicSocialProfile, SocialLeaderboardEntry, SocialPeopleSearchEntry, SocialPeopleSnapshot, SocialLoadout, SocialReward, SocialSnapshot } from '../../../types/Social'
 import { CareerTrackProgress, DailySalaryReceipt, WorkCareerId, WorkHistoryRecord, WorkProgression, WorkSnapshot } from '../../../types/Work'
 import type { PropertyStyles, PropertyVisibility } from '../../../types/Housing'
 
@@ -145,6 +145,12 @@ export const studioApi = {
   },
   transferCoins(token: string, input: { recipient: string; amount: number; tradeId?: string }) {
     return request<{ tradeId: string; amount: number; recipientName: string; progression: SocialSnapshot['progression']; duplicate: boolean }>('/social/trade', { method: 'POST', body: JSON.stringify(input) }, token)
+  },
+  sellInventoryItem(token: string, input: { itemId: string; quantity: number; saleId?: string }) {
+    return request<InventorySaleReceipt>('/social/inventory/sell', { method: 'POST', body: JSON.stringify(input) }, token)
+  },
+  tradeInventoryItem(token: string, input: { itemId: string; quantity: number; recipient: string; tradeId?: string }) {
+    return request<InventoryTradeReceipt>('/social/inventory/trade', { method: 'POST', body: JSON.stringify(input) }, token)
   },
   socialCatalog(token: string) {
     return request<CosmeticCatalogItem[]>('/social/catalog', {}, token)

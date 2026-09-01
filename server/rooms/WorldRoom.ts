@@ -12,7 +12,9 @@ import {
   FISHING_REEL_WINDOW_MAX_MS,
   FISHING_REEL_WINDOW_MIN_MS,
   FishingCatchReceipt,
+  getFishingSpawnPoint,
   getFishingSpot,
+  isFishingPositionWalkable,
 } from '../../types/Fishing'
 import type { FishingCastState } from '../../types/Fishing'
 import type { WorldId, WorldRoomOptions } from '../../types/IWorldState'
@@ -238,7 +240,7 @@ export class WorldRoom extends Room<WorldState> {
 
   private spawnPoint(index: number) {
     if (this.worldId === 'HOME') return { x: 480 + (index % 4) * 36, y: 360 + Math.floor(index / 4) * 36 }
-    return { x: 760 + (index % 8) * 42, y: 500 + Math.floor(index / 8) * 42 }
+    return getFishingSpawnPoint(index)
   }
 
   private handlePlayerMovement(client: Client, message: { x: number; y: number; anim: string }) {
@@ -246,7 +248,7 @@ export class WorldRoom extends Room<WorldState> {
     const bounds = WORLD_BOUNDS[this.worldId]
     const x = Number(message?.x)
     const y = Number(message?.y)
-    if (!player || !Number.isFinite(x) || !Number.isFinite(y) || x < bounds.minX || x > bounds.maxX || y < bounds.minY || y > bounds.maxY) {
+    if (!player || !Number.isFinite(x) || !Number.isFinite(y) || x < bounds.minX || x > bounds.maxX || y < bounds.minY || y > bounds.maxY || (this.worldId === 'FISHING' && !isFishingPositionWalkable(x, y))) {
       this.sendMovementCorrection(client, player)
       return
     }

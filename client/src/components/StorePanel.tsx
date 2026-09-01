@@ -280,11 +280,11 @@ export default function StorePanel({ open, onClose }: StorePanelProps) {
                 return <span key={slot}>
                   <b>{LAYER_LABELS[slot]}</b>
                   <em>{layerLabel(itemId, slot)}</em>
-                  <button type="button" className={`store-layer-equip${equipped ? ' is-equipped' : ''}`} disabled={Boolean(busy) || !owned || equipped} onClick={() => selectedItem && equipLayer(selectedItem, slot)}>{equipped ? 'ĐANG MẶC' : owned ? 'MẶC RIÊNG' : selectedItem?.wardrobe ? 'MUA MÓN' : 'MUA BỘ'}</button>
+                  <button type="button" className={`store-layer-equip${equipped ? ' is-equipped' : ''}`} disabled={Boolean(busy) || !owned || equipped} onClick={() => selectedItem && equipLayer(selectedItem, slot)}>{equipped ? 'ĐANG MẶC' : owned ? 'MẶC RIÊNG' : 'MUA'}</button>
                 </span>
               })}
             </div>}
-            <div className="store-preview-hint">Món mới chỉ đổi đúng layer của nó; bộ phối đổi áo, quần và giày cùng lúc. Tóc, mặt và các phụ kiện khác luôn được giữ nguyên.</div>
+            <div className="store-preview-hint">Bấm vào thẻ để mặc thử. Món chỉ đổi layer riêng; bộ phối đổi áo, quần và giày cùng lúc. Tóc, mặt và phụ kiện khác vẫn giữ nguyên.</div>
           </aside>
 
           <div className="store-catalog">
@@ -311,8 +311,8 @@ export default function StorePanel({ open, onClose }: StorePanelProps) {
                 const canAfford = coinBalance >= item.price
                 const itemBusy = busy.endsWith(item.id)
                 const noun = item.wardrobe ? 'món' : 'bộ'
-                return <article className={`store-outfit-card${selectedItem?.id === item.id ? ' is-selected' : ''}${current ? ' is-current' : ''}`} key={item.id} style={item.color ? { borderColor: `${item.color}88` } : undefined}>
-                  <button className="store-outfit-select" type="button" onClick={() => setSelectedId(item.id)} aria-label={`Xem trước ${item.name}`}>
+                return <article className={`store-outfit-card${selectedItem?.id === item.id ? ' is-selected' : ''}${current ? ' is-current' : ''}`} key={item.id} style={item.color ? { borderColor: `${item.color}88` } : undefined} onClick={() => setSelectedId(item.id)}>
+                  <button className="store-outfit-select" type="button" onClick={(event) => { event.stopPropagation(); setSelectedId(item.id) }} aria-label={`Mặc thử ${item.name}`}>
                     <span className="store-outfit-card-name">{item.name}</span>
                   </button>
                   <StoreOutfitCardPreview baseConfig={baseConfig} item={item} />
@@ -323,18 +323,18 @@ export default function StorePanel({ open, onClose }: StorePanelProps) {
                     {!owned ? <button
                       type="button"
                       className="store-card-action"
-                      aria-label={`Mua ${noun} ${item.name} với giá ${formatCoins(item.price)} Coin`}
+                      aria-label={`Mua ${item.name} với giá ${formatCoins(item.price)} Coin`}
                       disabled={Boolean(busy) || locked || !canAfford}
-                      onClick={() => purchase(item)}
+                      onClick={(event) => { event.stopPropagation(); purchase(item) }}
                     >
-                      {itemBusy ? 'ĐANG XỬ LÝ…' : locked ? `CẦN LV ${item.unlockLevel}` : !canAfford && item.price > 0 ? 'THIẾU COIN' : item.price === 0 ? `NHẬN ${noun.toUpperCase()}` : `MUA ${noun.toUpperCase()}`}
+                      {itemBusy ? 'ĐANG XỬ LÝ…' : locked ? `CẦN LV ${item.unlockLevel}` : !canAfford && item.price > 0 ? 'THIẾU COIN' : item.price === 0 ? 'NHẬN' : 'MUA'}
                     </button>
                       : <button
                         type="button"
                         className={`store-card-action${current ? ' is-equipped' : ''}`}
                         aria-label={current ? `Đang mặc ${noun} ${item.name}` : `Mặc ${noun} ${item.name}`}
                         disabled={Boolean(busy) || current}
-                        onClick={() => equip(item)}
+                        onClick={(event) => { event.stopPropagation(); equip(item) }}
                       >
                         {itemBusy ? 'ĐANG ĐỒNG BỘ…' : current ? 'ĐANG MẶC' : 'MẶC'}
                       </button>}

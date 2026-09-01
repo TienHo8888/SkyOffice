@@ -17,7 +17,7 @@ import Network from '../services/Network'
 import { IPlayer } from '../../../types/IOfficeState'
 import { PlayerBehavior } from '../../../types/PlayerBehavior'
 import { ItemType } from '../../../types/Items'
-import { getRoomForPosition, InteractiveObjectType, isWorkInteractiveObject, opensStudioHub, STUDIO_GAMES_WING_HEIGHT, STUDIO_GAMES_WING_ORIGIN_X, STUDIO_GAMES_WING_WIDTH, studioInteractiveObjects, studioRoomZones, studioWorldPortals, StudioWorldPortal } from '../../../types/StudioWorld'
+import { getRoomForPosition, InteractiveObjectType, isWorkInteractiveObject, opensStudioHub, STUDIO_DESTINATION_EXIT, STUDIO_GAMES_WING_HEIGHT, STUDIO_GAMES_WING_ORIGIN_X, STUDIO_GAMES_WING_WIDTH, studioInteractiveObjects, studioRoomZones, studioWorldPortals, StudioWorldPortal } from '../../../types/StudioWorld'
 import { canAccessStudioHub } from '../../../types/Studio'
 
 import store from '../stores'
@@ -69,6 +69,12 @@ const INTERACTION_HINT_OFFSETS: Record<InteractiveObjectType, { x: number; y: nu
   ARCADE_MACHINE: { x: 0, y: -62 },
   CARD_TABLE: { x: 0, y: -58 },
 }
+
+const isHiddenWorldAccessPoint = (object: typeof studioInteractiveObjects[number]) => (
+  isWorkInteractiveObject(object.type) ||
+  opensStudioHub(object.type) ||
+  object.accessVisibility === 'PROXIMITY'
+)
 
 // Hit reactions are deliberately playful and non-violent. Keep them short
 // enough for the existing speech-bubble width while giving each hit a little
@@ -394,7 +400,6 @@ export default class Game extends Phaser.Scene {
   }
 
   private createStudioWorldOverlay() {
-    const canUseStudioHub = canAccessStudioHub(store.getState().user.authUser?.role)
     const roomGraphics = this.add.graphics().setDepth(1)
     studioRoomZones.forEach((zone) => {
       roomGraphics.fillStyle(zone.color, 0.035)
@@ -415,11 +420,10 @@ export default class Game extends Phaser.Scene {
     this.createWorldPortals()
 
     studioInteractiveObjects.forEach((object) => {
-      if (!canUseStudioHub && opensStudioHub(object.type)) return
-      // Career access points stay interactive through their invisible map
-      // coordinates, but their extra overlay blocks, markers and labels add
-      // visual noise to the compact work rooms, so keep them hidden.
-      if (isWorkInteractiveObject(object.type) || opensStudioHub(object.type)) return
+      // Work, Studio Hub and PROXIMITY points are exposed through the React
+      // HUD/Hub. Their map coordinates are data-only, so do not create a
+      // marker, label or world-space interaction target for them.
+      if (isHiddenWorldAccessPoint(object)) return
 
       // Game panels open only after the player walks close enough and presses E.
       const isCardTable = object.type === 'CARD_TABLE'
@@ -427,7 +431,6 @@ export default class Game extends Phaser.Scene {
       if (isCardTable) this.createCardTableOrMachine(object.x, object.y, object.label)
       if (object.type === 'ARCADE_MACHINE') this.createArcadeMachine(object.x, object.y, object.label)
       if (isCardTable) this.createGameTableSeats(object.x, object.y)
-      if (object.accessVisibility === 'PROXIMITY') return
 
       // Tables and cabinets already have a physical prop as their access
       // affordance. Do not stack another glowing circle on top of them.
@@ -456,10 +459,10 @@ export default class Game extends Phaser.Scene {
     this.interactionHint = this.add.text(0, 0, '', {
       color: '#182317',
       fontFamily: 'DM Mono',
-      fontSize: '14px',
+      fontSize: '11px',
       fontStyle: 'bold',
       backgroundColor: '#c8f267',
-      padding: { left: 9, right: 9, top: 6, bottom: 6 },
+      padding: { left: 7, right: 7, top: 4, bottom: 4 },
     }).setOrigin(0.5, 1).setStroke('#e9ffb9', 1).setResolution(2).setDepth(6000).setVisible(false)
   }
 
@@ -515,7 +518,8 @@ export default class Game extends Phaser.Scene {
     paths.lineBetween(280, 544, 280, 616)
     paths.lineBetween(536, 544, 536, 592)
     paths.lineBetween(816, 382, 1000, 382)
-    paths.lineBetween(1000, 382, 1000, 248)
+    paths.lineBetween(1000, 382, 1000, STUDIO_DESTINATION_EXIT.centerY)
+    paths.lineBetween(1000, STUDIO_DESTINATION_EXIT.centerY, studioWorldPortals[0].x, STUDIO_DESTINATION_EXIT.centerY)
     ;[[536,382],[280,382],[816,382],[536,544],[280,544],[1000,382]].forEach(([x,y]) => paths.fillStyle(0xc8f267, 0.3).fillCircle(x, y, 4))
 
     const directory = this.add.graphics().setDepth(994)
@@ -545,19 +549,26 @@ export default class Game extends Phaser.Scene {
 
   private createWorldPortals() {
     studioWorldPortals.forEach((portal) => {
-      const portalGraphics = this.add.graphics().setDepth(portal.y + 18)
+      // Keep destination markers above map props and room signage. The old
+      // depth was tied to the portal's y coordinate, which made an entrance
+      // disappear behind foreground decorations in the Commons.
+      const portalDepth = 1100
+      const portalGraphics = this.add.graphics().setDepth(portalDepth)
       portalGraphics.lineStyle(3, portal.color, 0.95).strokeCircle(portal.x, portal.y, 24)
       portalGraphics.fillStyle(portal.color, 0.22).fillCircle(portal.x, portal.y, 19)
       portalGraphics.fillStyle(0xffffff, 0.7).fillCircle(portal.x - 7, portal.y - 7, 4)
+      portalGraphics
+        .setInteractive(new Phaser.Geom.Circle(portal.x, portal.y, 32), Phaser.Geom.Circle.Contains)
+        .on('pointerdown', () => this.enterWorldPortal(portal))
       this.tweens.add({ targets: portalGraphics, alpha: { from: 0.65, to: 1 }, duration: 850, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' })
-      this.add.text(portal.x, portal.y + 34, portal.label, {
+      this.add.text(portal.x, portal.y + 30, portal.label, {
         color: portal.destination === 'FISHING' ? '#d9f4ff' : '#eadbff',
         fontFamily: 'DM Mono',
-        fontSize: '8px',
+        fontSize: '7px',
         fontStyle: 'bold',
         backgroundColor: '#101622dd',
-        padding: { left: 5, right: 5, top: 3, bottom: 3 },
-      }).setOrigin(0.5).setStroke('#101622', 2).setDepth(portal.y + 19)
+        padding: { left: 5, right: 5, top: 2, bottom: 2 },
+      }).setOrigin(0.5).setStroke('#101622', 2).setDepth(portalDepth + 1)
     })
   }
 
@@ -614,10 +625,10 @@ export default class Game extends Phaser.Scene {
     // The office map ends at x=1280 while the games wing starts at x=1280.
     // Open the last two office tile rows so this connector is a real walkable
     // route between the Work Wing and the Play Wing.
-    const connectorStartTileX = Math.floor(960 / this.map.tileWidth)
-    const connectorEndTileX = Math.ceil(1280 / this.map.tileWidth)
-    const connectorStartTileY = Math.floor(224 / this.map.tileHeight)
-    const connectorEndTileY = Math.ceil(288 / this.map.tileHeight)
+    const connectorStartTileX = Math.floor(STUDIO_DESTINATION_EXIT.x / this.map.tileWidth)
+    const connectorEndTileX = Math.ceil((STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width) / this.map.tileWidth)
+    const connectorStartTileY = Math.floor((STUDIO_DESTINATION_EXIT.y + 16) / this.map.tileHeight)
+    const connectorEndTileY = Math.ceil((STUDIO_DESTINATION_EXIT.y + STUDIO_DESTINATION_EXIT.height) / this.map.tileHeight)
     for (let tileY = connectorStartTileY; tileY < connectorEndTileY; tileY += 1) {
       for (let tileX = connectorStartTileX; tileX < connectorEndTileX; tileX += 1) {
         if (tileX < this.map.width && tileY < this.map.height) groundLayer.getTileAt(tileX, tileY)?.setCollision(false)
@@ -627,41 +638,46 @@ export default class Game extends Phaser.Scene {
     const connector = this.add.graphics().setDepth(1)
     // Keep the connector visually distinct from both rooms: it is a neutral
     // walkable hallway, not another green room attached to the workspace.
-    connector.fillStyle(0x5e686d, 0.98).fillRect(960, 208, 352, 80)
+    connector.fillStyle(0x5e686d, 0.98).fillRect(STUDIO_DESTINATION_EXIT.x, STUDIO_DESTINATION_EXIT.y, STUDIO_DESTINATION_EXIT.width, STUDIO_DESTINATION_EXIT.height)
     connector.fillStyle(0xd1d8ce, 0.08)
-    for (let x = 968; x < 1304; x += 32) connector.fillRect(x, 216, 18, 64)
-    connector.lineStyle(2, 0x202936, 0.65).strokeRect(960, 208, 352, 80)
+    for (let x = STUDIO_DESTINATION_EXIT.x + 8; x < STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width - 8; x += 32) connector.fillRect(x, STUDIO_DESTINATION_EXIT.y + 8, 18, STUDIO_DESTINATION_EXIT.height - 16)
+    connector.lineStyle(2, 0x202936, 0.65).strokeRect(STUDIO_DESTINATION_EXIT.x, STUDIO_DESTINATION_EXIT.y, STUDIO_DESTINATION_EXIT.width, STUDIO_DESTINATION_EXIT.height)
     connector.lineStyle(3, 0xc8f267, 0.65)
-    connector.lineBetween(980, 249, 1268, 249)
+    const portalLineGap = 34
+    let routeStartX = STUDIO_DESTINATION_EXIT.x + 20
+    studioWorldPortals.forEach((portal) => {
+      connector.lineBetween(routeStartX, STUDIO_DESTINATION_EXIT.centerY, portal.x - portalLineGap, STUDIO_DESTINATION_EXIT.centerY)
+      routeStartX = portal.x + portalLineGap
+    })
+    connector.lineBetween(routeStartX, STUDIO_DESTINATION_EXIT.centerY, STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width - 28, STUDIO_DESTINATION_EXIT.centerY)
     connector.fillStyle(0xc8f267, 0.9)
-    connector.fillTriangle(1278, 241, 1290, 249, 1278, 257)
-    this.add.text(1175, 225, '→ PLAY WING', {
-      color: '#d9ffe9',
-      fontFamily: 'DM Mono',
-      fontSize: '9px',
-      fontStyle: 'bold',
-      backgroundColor: '#101622dd',
-      padding: { left: 5, right: 5, top: 3, bottom: 3 },
-    }).setOrigin(0.5).setStroke('#101622', 2).setDepth(4)
-    this.add.text(1130, 262, 'SOCIAL · TABLES · ARCADE', {
-      color: '#78caa9',
-      fontFamily: 'DM Mono',
-      fontSize: '7px',
-      backgroundColor: '#101622bb',
-      padding: { left: 4, right: 4, top: 2, bottom: 2 },
-    }).setOrigin(0.5).setStroke('#101622', 1).setDepth(4)
-    this.add.text(1012, 242, 'WORK WING EXIT', {
+    connector.fillTriangle(STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width - 18, STUDIO_DESTINATION_EXIT.centerY - 8, STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width - 6, STUDIO_DESTINATION_EXIT.centerY, STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width - 18, STUDIO_DESTINATION_EXIT.centerY + 8)
+    this.add.text(STUDIO_DESTINATION_EXIT.x + 12, STUDIO_DESTINATION_EXIT.y + 8, '← OFFICE', {
       color: '#dce8cf',
       fontFamily: 'DM Mono',
-      fontSize: '7px',
+      fontSize: '6px',
+      fontStyle: 'bold',
       backgroundColor: '#101622dd',
       padding: { left: 4, right: 4, top: 2, bottom: 2 },
-    }).setOrigin(0.5).setStroke('#101622', 2).setDepth(7)
+    }).setStroke('#101622', 1).setDepth(4)
+    this.add.text(STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width - 12, STUDIO_DESTINATION_EXIT.y + 8, 'PLAY WING →', {
+      color: '#d9ffe9',
+      fontFamily: 'DM Mono',
+      fontSize: '6px',
+      fontStyle: 'bold',
+      backgroundColor: '#101622dd',
+      padding: { left: 4, right: 4, top: 2, bottom: 2 },
+    }).setOrigin(1, 0).setStroke('#101622', 1).setDepth(4)
 
     // One old office prop sits directly on the new doorway. It is decorative
     // in the source map, so omit it from the collidable group when it overlaps
     // the connector opening.
-    this.gamesWingConnectorBounds = { x: 960, y: 208, width: 336, height: 80 }
+    this.gamesWingConnectorBounds = {
+      x: STUDIO_DESTINATION_EXIT.x,
+      y: STUDIO_DESTINATION_EXIT.y,
+      width: STUDIO_DESTINATION_EXIT.width,
+      height: STUDIO_DESTINATION_EXIT.height,
+    }
 
     const wallGraphics = this.add.graphics().setDepth(6)
     const wallColor = 0x242b3c
@@ -669,8 +685,8 @@ export default class Game extends Phaser.Scene {
     const wallRects = [
       { x: 1664, y: 48, width: 16, height: 212 },
       { x: 1664, y: 320, width: 16, height: 80 },
-      { x: 960, y: 192, width: 336, height: 16 },
-      { x: 960, y: 288, width: 336, height: 16 },
+      { x: STUDIO_DESTINATION_EXIT.x, y: STUDIO_DESTINATION_EXIT.y - 16, width: STUDIO_DESTINATION_EXIT.width, height: 16 },
+      { x: STUDIO_DESTINATION_EXIT.x, y: STUDIO_DESTINATION_EXIT.y + STUDIO_DESTINATION_EXIT.height, width: STUDIO_DESTINATION_EXIT.width, height: 16 },
       { x: 1296, y: 48, width: 720, height: 16 },
       { x: 1296, y: 880, width: 720, height: 16 },
       { x: 2016, y: 48, width: 16, height: 848 },
@@ -738,11 +754,10 @@ export default class Game extends Phaser.Scene {
 
   private getNearestInteractive() {
     if (!this.myPlayer) return undefined
-    const canUseStudioHub = canAccessStudioHub(store.getState().user.authUser?.role)
     let nearest: typeof studioInteractiveObjects[number] | undefined
     let nearestDistance = Number.POSITIVE_INFINITY
     studioInteractiveObjects.forEach((object) => {
-      if (!canUseStudioHub && opensStudioHub(object.type)) return
+      if (isHiddenWorldAccessPoint(object)) return
       const distance = Phaser.Math.Distance.Between(this.myPlayer.x, this.myPlayer.y, object.x, object.y)
       if (distance <= object.interactionRadius && distance < nearestDistance) {
         nearest = object
@@ -796,9 +811,7 @@ export default class Game extends Phaser.Scene {
     }
     const portal = this.getNearestPortal()
     if (portal) {
-      const userId = store.getState().user.authUser?.id || ''
-      const transition = portal.destination === 'FISHING' ? this.network.joinFishing() : this.network.joinHome(userId)
-      void transition.catch(() => undefined)
+      this.enterWorldPortal(portal)
       return
     }
     const object = this.getNearestInteractive()
@@ -811,6 +824,12 @@ export default class Game extends Phaser.Scene {
       phaserEvents.emit(Event.GAME_INTERACTION, object.type as InteractiveObjectType)
       if (object.gameMode) phaserEvents.emit(Event.GAME_TABLE_OPEN, { ...object })
     }
+  }
+
+  private enterWorldPortal(portal: StudioWorldPortal) {
+    const userId = store.getState().user.authUser?.id || ''
+    const transition = portal.destination === 'FISHING' ? this.network.joinFishing() : this.network.joinHome(userId)
+    void transition.catch(() => undefined)
   }
 
   private updateStudioWorld() {

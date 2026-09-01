@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 
-import { getRoomForPosition, studioInteractiveObjects, studioRoomZones } from '../../types/StudioWorld'
+import { getRoomForPosition, STUDIO_DESTINATION_EXIT, studioInteractiveObjects, studioRoomZones, studioWorldPortals } from '../../types/StudioWorld'
 
 const expectedRooms = [
   ['DESIGN', 'Game Design Lab', 'WORK'],
@@ -29,6 +29,18 @@ const careerStationIds = ['GAME_DESIGN_STATION', 'ART_STATION', 'ANIMATION_STATI
 assert.equal(workStations.length, careerStationIds.length, 'Each career needs one physical workstation')
 assert.deepEqual(workStations.map((station) => station.stationId), careerStationIds)
 assert.equal(studioInteractiveObjects.find((object) => object.id === 'build-machine')?.accessVisibility, 'PRIMARY', 'Build Machine must be visible as a physical access point')
+
+assert.equal(studioWorldPortals.length, 2, 'The office exit must expose Fishing and My Home')
+for (const portal of studioWorldPortals) {
+  assert.equal(portal.y, STUDIO_DESTINATION_EXIT.centerY, `${portal.id} must sit in the exit corridor`)
+  assert.ok(portal.x > STUDIO_DESTINATION_EXIT.x + 32, `${portal.id} needs clearance from the office doorway`)
+  assert.ok(portal.x < STUDIO_DESTINATION_EXIT.x + STUDIO_DESTINATION_EXIT.width - 32, `${portal.id} needs clearance from the play-wing doorway`)
+  assert.ok(portal.interactionRadius <= 54, `${portal.id} interaction radius must stay inside the open corridor`)
+}
+assert.ok(
+  Math.abs(studioWorldPortals[0].x - studioWorldPortals[1].x) > studioWorldPortals[0].interactionRadius + studioWorldPortals[1].interactionRadius,
+  'Destination portals must not compete for the same interaction radius',
+)
 
 for (const stationId of ['JOB_BOARD', ...careerStationIds, 'CAREER_CENTER', 'PAYROLL_OFFICE']) {
   const accessPoint = studioInteractiveObjects.find((object) => object.stationId === stationId)

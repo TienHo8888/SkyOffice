@@ -26,7 +26,7 @@ export default function NewPlayerGuide() {
     const careerDefinition = work.careers.find((entry) => entry.id === career)
     return [
       { id: 'tutorial', title: 'Làm job đầu tiên', detail: 'Mở Job Board để bắt đầu tutorial 4 câu ngay tại chỗ.', room: 'LOBBY', done: work.tutorialCompleted },
-      { id: 'career', title: 'Chọn nghề bạn thích', detail: 'Đi bộ tới workstation của nghề bạn muốn rồi nhấn E để chọn nghề.', room: 'MEETING', done: Boolean(career) },
+      { id: 'career', title: 'Chọn nghề bạn thích', detail: 'Mở Work Hub và chọn nghề ngay tại chỗ; không cần chạy tới workstation.', room: 'LOBBY', done: Boolean(career) },
       { id: 'jobs', title: 'Làm đủ 3 Career Jobs', detail: careerDefinition ? `Bạn đang theo ${careerDefinition.name}. Bấm “Làm job” để mở challenge ngay.` : 'Hãy chọn nghề trước, sau đó bấm “Làm job” để bắt đầu.', room: careerDefinition?.roomId || 'LOBBY', done: work.daily.completedJobs >= 3 },
       { id: 'salary', title: 'Nhận lương ngày', detail: `Đã hoàn thành ${work.daily.completedJobs}/3 job. Đủ 3 job thì đi tới Payroll Office và nhấn E để nhận lương.`, room: 'MEETING', done: work.salary.state === 'CLAIMED' },
       { id: 'play', title: 'Chơi game để kiếm thêm', detail: 'Đi bộ qua Social Connector tới Play Wing, tới gần bàn/máy rồi nhấn E. Game Coin có phí và rủi ro.', room: 'GAME_LOUNGE', done: room === 'GAME_LOUNGE' || room === 'ARCADE' || room === 'CARD_ROOM' },

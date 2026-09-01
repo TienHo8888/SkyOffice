@@ -12,8 +12,8 @@ const phaseDurationMs = {
 }
 
 function fishingDirection(playerX: number, playerY: number, spot: FishingSpotDefinition): AvatarDirection {
-  const dx = spot.x - playerX
-  const dy = spot.y - playerY
+  const dx = spot.castX - playerX
+  const dy = spot.castY - playerY
   if (Math.abs(dx) >= Math.abs(dy)) return dx < 0 ? 'left' : 'right'
   return dy < 0 ? 'up' : 'down'
 }
@@ -65,8 +65,8 @@ export default class FishingActionVisual {
 
     this.container.setPosition(Math.round(playerX), Math.round(playerY)).setDepth(Math.round(depth) + 8)
     const elapsed = Math.max(0, time - this.phaseStartedAt)
-    const targetX = this.spot.x - playerX
-    const targetY = this.spot.y - playerY - 5
+    const targetX = this.spot.castX - playerX
+    const targetY = this.spot.castY - playerY - 5
     const rodSide = this.direction === 'left' ? -1 : 1
     const rodBaseX = rodSide * 6
     const rodBaseY = this.direction === 'down' ? -16 : -22
@@ -79,7 +79,9 @@ export default class FishingActionVisual {
       const progress = Phaser.Math.Clamp(elapsed / phaseDurationMs.CASTING, 0, 1)
       const eased = 1 - Math.pow(1 - progress, 3)
       bobberX = Phaser.Math.Linear(rodTipX, targetX, eased)
-      bobberY = Phaser.Math.Linear(rodTipY, targetY, eased) - Math.sin(progress * Math.PI) * 30
+      const castDistance = Phaser.Math.Distance.Between(0, 0, targetX, targetY)
+      const castLift = Math.min(46, 24 + castDistance * 0.08)
+      bobberY = Phaser.Math.Linear(rodTipY, targetY, eased) - Math.sin(progress * Math.PI) * castLift
     } else if (this.phase === 'WAITING') {
       bobberY += Math.sin(time / 115) * 1.5
     } else if (this.phase === 'NIBBLE') {

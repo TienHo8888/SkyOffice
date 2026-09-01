@@ -16,6 +16,7 @@ import TagGameOverlay from './components/TagGameOverlay'
 import MiniGameOverlay from './components/MiniGameOverlay'
 import CombatHotbar from './components/CombatHotbar'
 import PlayerHud from './components/PlayerHud'
+import CoinHud from './components/CoinHud'
 import WorkPanel from './components/WorkPanel'
 import RpsOverlay from './components/RpsOverlay'
 import AudioDirector from './components/AudioDirector'
@@ -78,6 +79,21 @@ function App() {
       .catch(() => dispatch(clearAuthSession()))
       .finally(() => dispatch(setAuthHydrated(true)))
   }, [authToken, dispatch])
+
+  useEffect(() => {
+    const handleLogoutShortcut = (event: KeyboardEvent) => {
+      const target = event.target
+      const isEditing = target instanceof Element && Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
+      const isLogoutShortcut = event.code === 'KeyL' && event.shiftKey && (event.ctrlKey || event.metaKey) && !event.altKey
+      if (!authToken || !loggedIn || isEditing || !isLogoutShortcut) return
+
+      event.preventDefault()
+      dispatch(clearAuthSession())
+    }
+
+    window.addEventListener('keydown', handleLogoutShortcut)
+    return () => window.removeEventListener('keydown', handleLogoutShortcut)
+  }, [authToken, dispatch, loggedIn])
 
   useEffect(() => {
     const handleStudioEvent = (payload: { type?: string; actorId?: string; completion?: CompletionResponse }) => {
@@ -149,6 +165,7 @@ function App() {
           <SocialContextCard />
           <PartyDock />
           <PlayerHud />
+          <CoinHud />
           {activeWorld === 'PUBLIC' && <CombatHotbar />}
           <MobileVirtualJoystick />
           {activeWorld === 'PUBLIC' && <NewPlayerGuide />}

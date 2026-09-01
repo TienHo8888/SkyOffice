@@ -28,7 +28,7 @@ import {
   removeAvailableRooms,
   setRoomJoined,
 } from '../stores/RoomStore'
-import { setActiveWorld, setWorldError, setWorldMapLoading, setWorldTransition } from '../stores/WorldStore'
+import { setActiveWorld, setWorldError, setWorldMapLoading, setWorldOwner, setWorldTransition } from '../stores/WorldStore'
 import {
   pushChatMessage,
   pushPlayerJoinedMessage,
@@ -446,6 +446,12 @@ export default class Network {
       const syncWorldState = () => {
         if (!isCurrentRoom() || !this.isWorldState(room.state)) return
         this.latestHomeLayout = worldState.layoutJson ? this.parseJson(worldState.layoutJson) : undefined
+        // The first Colyseus patch can contain worldId before ownerId. Keep
+        // the Home editor in owner mode once the authoritative owner field
+        // arrives instead of leaving the owner stuck in guest view.
+        if (worldState.worldId === 'HOME' && worldState.ownerId && store.getState().world.ownerId !== worldState.ownerId) {
+          store.dispatch(setWorldOwner(worldState.ownerId))
+        }
         if (worldState.worldId === 'HOME' && this.latestHomeLayout) phaserEvents.emit(Event.HOME_LAYOUT_UPDATED, this.latestHomeLayout)
       }
       syncWorldState()
